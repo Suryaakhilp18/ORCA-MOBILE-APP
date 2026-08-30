@@ -1,0 +1,135 @@
+{
+  "app_name": "ORCA",
+  "personality": "5 Brutalist Mobile",
+  "personality_one_liner": "A stark, highly legible, command-center interface designed for harsh outdoor glare, low-end devices, and critical maritime safety decisions.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#09090B",
+    "surfaceSecondary": "#F4F4F5",
+    "onSurfaceSecondary": "#27272A",
+    "surfaceTertiary": "#E4E4E7",
+    "onSurfaceTertiary": "#3F3F46",
+    "surfaceInverse": "#09090B",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#E63946",
+    "brandPrimary": "#E63946",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#2A3B32",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#E4E4E7",
+    "onBrandTertiary": "#09090B",
+    "success": "#2A3B32",
+    "onSuccess": "#FFFFFF",
+    "warning": "#E9C46A",
+    "onWarning": "#09090B",
+    "error": "#E63946",
+    "onError": "#FFFFFF",
+    "info": "#09090B",
+    "onInfo": "#FFFFFF",
+    "border": "#09090B",
+    "borderStrong": "#000000",
+    "divider": "#E4E4E7"
+  },
+  "typography": {
+    "displayFontFamily": "Space Grotesk",
+    "textFontFamily": "Space Grotesk",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use rigid grids, exposed structure, and deliberate tension. No accidental whitespace.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 0,
+    "md": 0,
+    "lg": 0,
+    "pill": 0
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "false",
+    "do's": [
+      "Use solid surfaceSecondary or surfaceInverse for elevated surfaces."
+    ],
+    "dont's": [
+      "No blur or glassmorphism. This is a Brutalist utility app for low-end devices."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "solid surfaceInverse",
+      "android": "solid surfaceInverse",
+      "low_end_android_fallback": "solid surfaceInverse"
+    },
+    "image": "expo-image",
+    "blur": "solid surfaceInverse",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Chat",
+      "purpose": "Primary conversational UI for querying marine/weather intelligence.",
+      "states": {
+        "loading": "Centered monospace loading indicator",
+        "empty": "Illustration of abstract radar with prompt suggestions",
+        "error": "Hard red error block with 'Retry Connection' primary action"
+      },
+      "layout": "Bottom-pinned input field. Chat bubbles have sharp 2pt borders. User queries on right, AI responses on left. Inline widgets (MapLibre maps, SST heatmaps) render as full-width blocks between text messages. Offline 'stale data' banner pinned at the top when connectivity drops. Include a toggle for EN/Telugu inside the header."
+    },
+    {
+      "name": "Alerts",
+      "purpose": "Proactive hazard alerts feed and alert history.",
+      "states": {
+        "loading": "Skeleton of stacked rectangular cards",
+        "empty": "Empty state with 'No Active Hazards' message in Kelp Green",
+        "error": "Error block with retry CTA"
+      },
+      "layout": "Dense vertical stack of alert cards. Cards use severe high-contrast styling (e.g., solid warning yellow or signal red backgrounds for active hazards, stark white for resolved). High information density with monospace timestamps."
+    },
+    {
+      "name": "Saved",
+      "purpose": "Manage saved fishing locations and vessel profile.",
+      "states": {
+        "loading": "Skeleton grid",
+        "empty": "Prompt to 'Save a coordinate from chat'",
+        "error": "Error block with retry CTA"
+      },
+      "layout": "Rigid 2-column grid for saved locations. Exposed coordinates and quick-action buttons (Check Weather, View Map) under each location. Profile info sits at the top."
+    }
+  ],
+  "images": {
+    "hero_radar": {
+      "url": "https://images.unsplash.com/photo-1630260667842-830a17d12ec9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwxfHxzYXRlbGxpdGUlMjB3ZWF0aGVyJTIwbWFwJTIwcmFkYXJ8ZW58MHx8fHwxNzgzNDYzMjIzfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Satellite weather radar map with abstract thermal colors"
+    },
+    "empty_radar": {
+      "url": "https://images.unsplash.com/photo-1651505942687-efc26cb528ba",
+      "alt": "Abstract concentric radar circles on screen"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Adopt the Brutalist Mobile LIGHT personality strictly: 0 radius everywhere (sharp corners), stark black and white contrasts, and 2pt structural borders.",
+    "Use Signal Red (#E63946) strictly for critical alerts/hazards and Kelp Green (#2A3B32) for 'safe to sail' verdicts. Do NOT use blue anywhere per strict instructions.",
+    "Ensure 'Stale Data / Offline' warning banner is prominently pinned at the top of the Chat and Alerts screens. It must use the 'warning' color token (yellow) with hard black text for maximum visibility in harsh sunlight.",
+    "Inline MapLibre and Chart widgets in the chat flow must occupy full column width, bordered by thick 2pt black lines to separate them from conversational text.",
+    "Implement the 'Reasoning Trace' (planner -> agents -> synthesizer) as a collapsible, raw-looking monospace text block to build trust through explainability.",
+    "Absolutely NO glassmorphism or blur effects. Target users have low-end Android devices; use solid `surfaceSecondary` or `surfaceInverse` for elevated components like bottom sheets.",
+    "Typography must be Space Grotesk. If monospace is needed for data, tide values, or reasoning traces, utilize Space Mono or JetBrains Mono."
+  ]
+}

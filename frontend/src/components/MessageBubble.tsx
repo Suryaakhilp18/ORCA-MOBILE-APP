@@ -6,7 +6,7 @@ import ChartWidget from "@/src/components/ChartWidget";
 import MapWidget from "@/src/components/MapWidget";
 import ReasoningTrace from "@/src/components/ReasoningTrace";
 import VerdictBadge from "@/src/components/VerdictBadge";
-import { Lang, t } from "@/src/context/AppContext";
+import { Lang, t, trackingFor } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 // Render **bold** markdown spans as bold Text, everything else plain.
@@ -43,7 +43,7 @@ function MessageBubble({ msg, lang }: { msg: ChatMessage; lang: Lang }) {
         <Text style={styles.aiTag}>ORCA</Text>
       </View>
       <View style={styles.aiBubble}>
-        <VerdictBadge verdict={msg.verdict} />
+        <VerdictBadge verdict={msg.verdict} lang={lang} />
         <Text style={styles.aiText}>{renderRich(msg.content)}</Text>
 
         {(msg.widgets || []).map((w, i) =>
@@ -56,7 +56,9 @@ function MessageBubble({ msg, lang }: { msg: ChatMessage; lang: Lang }) {
 
         {!!msg.citations?.length && (
           <View style={styles.sources}>
-            <Text style={styles.sourcesTitle}>{t("sources", lang)}</Text>
+            <Text style={[styles.sourcesTitle, { letterSpacing: trackingFor(lang, 1) }]}>
+              {t("sources", lang)}
+            </Text>
             {msg.citations.map((c, i) => (
               <Text key={i} style={styles.sourceItem}>
                 • {c}
@@ -68,6 +70,7 @@ function MessageBubble({ msg, lang }: { msg: ChatMessage; lang: Lang }) {
         <ReasoningTrace
           trace={msg.reasoning_trace || []}
           label={t("reasoning", lang)}
+          lang={lang}
         />
       </View>
     </View>

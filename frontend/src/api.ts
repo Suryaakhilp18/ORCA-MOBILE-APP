@@ -43,19 +43,32 @@ export type ChatMessage = {
   intent?: string;
 };
 
+export type Region = {
+  id: string;
+  name: string;
+  state: string;
+  center: { lat: number; lon: number };
+  sea?: string;
+  coast_bearing?: string;
+};
+
+export type GeoResult = { display_name: string; lat: number; lon: number; type?: string };
+
 export const api = {
   chat: (body: {
     message: string;
     session_id: string;
     language?: string | null;
     location?: { name?: string; lat: number; lon: number } | null;
+    region_id?: string | null;
     user_id?: string;
   }) => req("/chat", { method: "POST", body: JSON.stringify(body) }),
 
   getConversation: (session_id: string) =>
     req(`/conversations/${session_id}`),
 
-  getAlerts: () => req("/alerts"),
+  getAlerts: (region_id?: string) =>
+    req(`/alerts${region_id ? `?region_id=${region_id}` : ""}`),
   getNotifications: (user_id = "demo-user") =>
     req(`/notifications?user_id=${user_id}`),
 
@@ -78,8 +91,25 @@ export const api = {
     user_id?: string;
   }) => req("/geofence/check", { method: "POST", body: JSON.stringify(body) }),
 
-  getBoundaries: () => req("/data/boundaries"),
-  getRegion: () => req("/region"),
+  getBoundaries: (region_id?: string) =>
+    req(`/data/boundaries${region_id ? `?region_id=${region_id}` : ""}`),
+  getRegion: (region_id?: string) =>
+    req(`/region${region_id ? `?region_id=${region_id}` : ""}`),
+
+  // India-wide region registry
+  listRegions: (): Promise<{ regions: Region[]; default_region_id: string }> =>
+    req("/regions"),
+  detectRegion: (
+    lat: number,
+    lon: number,
+  ): Promise<{ region: Region; distance_km: number }> =>
+    req(`/regions/detect?lat=${lat}&lon=${lon}`),
+
+  // Free-text location search (any Indian coastal place)
+  geocode: (
+    q: string,
+  ): Promise<{ query: string; results: GeoResult[]; attribution: string }> =>
+    req(`/geocode?q=${encodeURIComponent(q)}`),
 };
 
 export { BASE };

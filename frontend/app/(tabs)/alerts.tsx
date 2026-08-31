@@ -14,14 +14,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/src/api";
 import AlertCard, { AlertItem } from "@/src/components/AlertCard";
 import StaleBanner from "@/src/components/StaleBanner";
-import { useApp, t } from "@/src/context/AppContext";
+import { useApp, t, trackingFor } from "@/src/context/AppContext";
 import { storage } from "@/src/utils/storage";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 const CACHE_KEY = "orca_alerts_cache";
 
 export default function AlertsScreen() {
-  const { lang, userId } = useApp();
+  const { lang, userId, region } = useApp();
   const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [notifs, setNotifs] = useState<AlertItem[]>([]);
@@ -32,7 +32,7 @@ export default function AlertsScreen() {
   const load = useCallback(async () => {
     try {
       const [a, n] = await Promise.all([
-        api.getAlerts(),
+        api.getAlerts(region.id),
         api.getNotifications(userId),
       ]);
       setAlerts(a.alerts || []);
@@ -62,7 +62,7 @@ export default function AlertsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, region.id]);
 
   useEffect(() => {
     load();
@@ -82,7 +82,14 @@ export default function AlertsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("alerts", lang).toUpperCase()}</Text>
+        <View>
+        <Text style={[styles.title, { letterSpacing: trackingFor(lang, 2) }]}>
+            {t("alerts", lang).toUpperCase()}
+          </Text>
+          <Text style={styles.regionText}>
+            {region.name}, {region.state}
+          </Text>
+        </View>
         <Ionicons name="warning" size={22} color={colors.brand} />
       </View>
 
@@ -109,7 +116,9 @@ export default function AlertsScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item: section }) => (
             <View style={{ marginBottom: spacing.lg }}>
-              <Text style={styles.sectionTitle}>{section.header}</Text>
+              <Text style={[styles.sectionTitle, { letterSpacing: trackingFor(lang, 1) }]}>
+                {section.header}
+              </Text>
               {section.items.length === 0 ? (
                 <View testID="no-hazards" style={styles.emptyBox}>
                   <Ionicons
@@ -121,7 +130,7 @@ export default function AlertsScreen() {
                 </View>
               ) : (
                 section.items.map((it, i) => (
-                  <AlertCard key={i} item={it} />
+                  <AlertCard key={i} item={it} lang={lang} />
                 ))
               )}
             </View>
@@ -149,6 +158,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 2,
     color: colors.onSurface,
+  },
+  regionText: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { padding: spacing.lg },

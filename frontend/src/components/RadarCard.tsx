@@ -1,11 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors, fonts, radius, spacing, type } from "@/src/theme";
+import { colors, fonts, radius, spacing } from "@/src/theme";
+
+type RegionLite = {
+  name: string;
+  state: string;
+  center: { lat: number; lon: number };
+  sea?: string;
+};
 
 // Console-style telemetry card (mirrors the ORCA command-console reference):
 // coordinates + SST/Chl readouts + safety index + multi-agent status chips.
-export default function RadarCard() {
+// Region-aware: coordinates/sector always reflect the currently selected
+// India-wide coastal region. This is a DEMO BASELINE visualization, not a
+// live radar feed — clearly labelled so it is never mistaken for real-time
+// sensor data.
+export default function RadarCard({ region }: { region?: RegionLite }) {
+  const lat = region?.center.lat ?? 16.9891;
+  const lon = region?.center.lon ?? 82.2475;
+  const sector = region ? `${region.name} Sector · ${region.sea || "coastal waters"}`
+                       : "Kakinada Sector · Bay of Bengal";
   return (
     <View testID="radar-card" style={styles.card}>
       <View style={styles.header}>
@@ -21,8 +36,10 @@ export default function RadarCard() {
       <View style={styles.telemetry}>
         <View style={styles.telemetryTop}>
           <View>
-            <Text style={styles.coord}>16.9891° N, 82.2475° E</Text>
-            <Text style={styles.sector}>Kakinada Sector · Bay of Bengal</Text>
+            <Text style={styles.coord}>
+              {lat.toFixed(4)}° N, {lon.toFixed(4)}° E
+            </Text>
+            <Text style={styles.sector}>{sector}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.metric}>

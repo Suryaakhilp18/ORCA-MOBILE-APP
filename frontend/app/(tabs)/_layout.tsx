@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useApp, t } from "@/src/context/AppContext";
+import { useApp, t, trackingFor } from "@/src/context/AppContext";
 import { colors, fonts } from "@/src/theme";
 
 // Brutalist custom tab bar (0 radius, hard 2pt top border, no glass/blur) — a
@@ -31,7 +31,7 @@ export default function TabsLayout() {
           fontFamily: fonts.mono,
           fontSize: 10,
           fontWeight: "700",
-          letterSpacing: 1,
+          letterSpacing: trackingFor(lang, 1),
         },
       }}
     >

@@ -1,14 +1,13 @@
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogBox, View } from "react-native";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AppProvider } from "@/src/context/AppContext";
 import { colors } from "@/src/theme";
 
@@ -16,19 +15,28 @@ import { colors } from "@/src/theme";
 // and agent works as expected.
 LogBox.ignoreAllLogs(true);
 
-// Keep the native splash visible from cold start until icon fonts register.
-// Required because @expo/vector-icons' componentDidMount fallback fires
-// Font.loadAsync against a broken vendor path if any <Icon> mounts before
-// the family is registered — which throws on Android Expo Go.
 SplashScreen.preventAutoHideAsync();
 
+// Offline-tolerant boot: ORCA's users often have poor/intermittent
+// connectivity (fishermen at sea, low-end Android). We never let a slow or
+// blocked network call (e.g. a CDN font fetch) wedge the splash screen
+// forever. Local bundled fonts load almost instantly; if they somehow don't
+// settle within FAILSAFE_MS we force the app open anyway — a font hiccup
+// should never be a reason the whole app fails to open.
+const FAILSAFE_MS = 2500;
+
 export default function RootLayout() {
-  const [iconsLoaded, iconError] = useIconFonts();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+  const [timedOut, setTimedOut] = useState(false);
 
-  const ready = (iconsLoaded || iconError) && fontsLoaded;
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), FAILSAFE_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const ready = fontsLoaded || !!fontError || timedOut;
 
   useEffect(() => {
     if (ready) {
@@ -36,8 +44,6 @@ export default function RootLayout() {
     }
   }, [ready]);
 
-  // If the CDN is unreachable we fall through on error rather than wedging
-  // the app — icons will tofu, but the app still boots.
   if (!ready) return null;
 
   return (

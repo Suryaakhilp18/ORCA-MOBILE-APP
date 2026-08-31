@@ -1,17 +1,21 @@
-"""ORCA backend — FastAPI modular monolith.
+"""ORCA backend — FastAPI modular monolith (India-wide coastal intelligence).
 
-Modules: orchestrator/ (agents), gis/ (spatial), data_adapters/ (mock feeds),
-notifications/ (hazard + geofence). Mongo stands in for PostgreSQL/PostGIS as
-the authoritative spatial store. All safety verdicts are deterministic; the LLM
-only explains them.
+Modules: orchestrator/ (agents), gis/ (spatial), data_adapters/ (mock feeds,
+now an India-wide region registry), notifications/ (hazard + geofence). Mongo
+stands in for PostgreSQL/PostGIS as the authoritative spatial store — every
+supported region's PFZ + boundary layer is seeded into the SAME collections,
+so nearest-neighbour lookups resolve correctly nationwide by geography alone.
+All safety verdicts are deterministic; the LLM only explains them.
 """
+import asyncio
 import logging
 import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+import httpx
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
@@ -42,6 +46,12 @@ def _rate_limited(key: str) -> bool:
     return len(hits) > CHAT_LIMIT
 
 
+# ---- Nominatim geocoding: app-wide 1 req/sec throttle per usage policy -----
+_GEOCODE_LOCK = asyncio.Lock()
+_last_geocode_at = 0.0
+GEOCODE_USER_AGENT = "ORCA-MarineIntelligence/1.0 (Emergent demo; India coastal app)"
+
+
 # --------------------------------- models -----------------------------------
 class Location(BaseModel):
     name: str | None = None
@@ -54,6 +64,7 @@ class ChatRequest(BaseModel):
     session_id: str
     language: str | None = None
     location: Location | None = None
+    region_id: str | None = None
     user_id: str = "demo-user"
 
 
@@ -80,7 +91,8 @@ class SubscribeRequest(BaseModel):
 # --------------------------------- health -----------------------------------
 @api.get("/")
 async def root():
-    return {"service": "ORCA", "status": "ok", "region": mr.REGION}
+    return {"service": "ORCA", "status": "ok", "region": mr.REGION,
+            "coverage": "India-wide", "regions_available": len(mr.REGIONS)}
 
 
 @api.get("/health")
@@ -105,17 +117,19 @@ async def chat(req: ChatRequest, request: Request):
 
     try:
         result = await agents.orchestrate(req.session_id, req.message,
-                                          context, user_loc)
+                                          context, user_loc, req.region_id,
+                                          req.language)
     except Exception as e:  # explicit safe-default on any failure
         logger.exception("orchestrator failed")
+        fallback_region = mr.get_region(req.region_id)
         result = {
             "answer": ("Could not verify current marine conditions right now. "
                        "Do not assume it is safe — please check local advisories."),
             "verdict": None, "language": req.language or "en", "intent": "general",
             "citations": [], "widgets": [], "reasoning_trace": [
                 {"agent": "System", "detail": f"Pipeline error: {type(e).__name__}"}],
-            "location": user_loc or agents.DEFAULT_LOC, "elapsed_ms": 0,
-            "error": True,
+            "location": user_loc or fallback_region["center"],
+            "region": fallback_region, "elapsed_ms": 0, "error": True,
         }
 
     # persist both turns
@@ -128,7 +142,8 @@ async def chat(req: ChatRequest, request: Request):
               "citations": result.get("citations", []),
               "widgets": result.get("widgets", []),
               "reasoning_trace": result.get("reasoning_trace", []),
-              "intent": result.get("intent")}
+              "intent": result.get("intent"),
+              "region": result.get("region")}
     await db.conversations.update_one(
         {"session_id": req.session_id},
         {"$push": {"messages": {"$each": [user_msg, ai_msg]}},
@@ -138,7 +153,8 @@ async def chat(req: ChatRequest, request: Request):
     )
     return {"user_message": user_msg, "assistant_message": ai_msg,
             "meta": {"elapsed_ms": result.get("elapsed_ms"),
-                     "language": result.get("language")}}
+                     "language": result.get("language"),
+                     "region": result.get("region")}}
 
 
 @api.get("/conversations/{session_id}")
@@ -184,8 +200,10 @@ async def delete_location(location_id: str):
 
 # ---------------------------------- alerts -----------------------------------
 @api.get("/alerts")
-async def get_alerts():
-    return {"region": mr.REGION["name"], "alerts": mr.get_active_alerts()}
+async def get_alerts(region_id: str | None = None):
+    r = mr.get_region(region_id)
+    return {"region": f"{r['name']}, {r['state']}", "region_id": r["id"],
+            "alerts": mr.get_active_alerts(region_id)}
 
 
 @api.get("/notifications")
@@ -202,26 +220,90 @@ async def geofence_check(req: GeofenceCheckRequest):
 
 # ----------------------------- reference data --------------------------------
 @api.get("/data/boundaries")
-async def data_boundaries():
+async def data_boundaries(region_id: str | None = None):
     return {"source": "Bundled maritime boundary layer", "is_mock": True,
-            "boundaries": await spatial.all_boundaries()}
+            "boundaries": mr.get_boundaries(region_id)}
 
 
 @api.get("/data/pfz")
-async def data_pfz():
-    return mr.get_pfz_advisory()
+async def data_pfz(region_id: str | None = None):
+    return mr.get_pfz_advisory(region_id)
 
 
 @api.get("/data/ocean")
-async def data_ocean():
-    return {"grid": mr.get_sst_chl_grid(),
-            "sst_trend": mr.get_sst_trend(),
-            "chl_trend": mr.get_chl_trend()}
+async def data_ocean(region_id: str | None = None):
+    return {"grid": mr.get_sst_chl_grid(region_id),
+            "sst_trend": mr.get_sst_trend(region_id),
+            "chl_trend": mr.get_chl_trend(region_id)}
 
 
 @api.get("/region")
-async def region():
-    return mr.REGION
+async def region(region_id: str | None = None):
+    return mr.get_region(region_id)
+
+
+# ------------------------- India-wide region registry -------------------------
+@api.get("/regions")
+async def regions():
+    return {"regions": mr.list_regions(), "default_region_id": mr.DEFAULT_REGION_ID}
+
+
+@api.get("/regions/detect")
+async def regions_detect(lat: float, lon: float):
+    region_cfg, distance_km = mr.nearest_region(lat, lon)
+    return {"region": region_cfg, "distance_km": distance_km}
+
+
+# ------------------------------ location search ------------------------------
+@api.get("/geocode")
+async def geocode(q: str = Query(min_length=2, max_length=200), limit: int = 5):
+    """Forward-geocode a free-text place name to coordinates (India-biased).
+
+    Proxies OpenStreetMap Nominatim with an app-wide 1 req/sec throttle,
+    identifying User-Agent and a Mongo cache — per Nominatim's usage policy.
+    User-triggered search only (no autocomplete/typeahead).
+    """
+    global _last_geocode_at
+    query = q.strip()
+    cache_key = query.lower()
+
+    cached = await db.geocode_cache.find_one({"cache_key": cache_key})
+    if cached:
+        return {"query": query, "results": cached["results"], "cached": True,
+                "attribution": "© OpenStreetMap contributors"}
+
+    async with _GEOCODE_LOCK:
+        wait = 1.0 - (time.time() - _last_geocode_at)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        _last_geocode_at = time.time()
+        try:
+            async with httpx.AsyncClient(
+                timeout=10, headers={"User-Agent": GEOCODE_USER_AGENT},
+            ) as client:
+                resp = await client.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={"q": query, "format": "jsonv2", "addressdetails": 0,
+                           "countrycodes": "in", "limit": limit},
+                )
+                resp.raise_for_status()
+                raw = resp.json()
+        except Exception:
+            logger.exception("geocode upstream failed")
+            raise HTTPException(status_code=502,
+                                detail="Location search temporarily unavailable")
+
+    results = [{"display_name": item["display_name"], "lat": float(item["lat"]),
+               "lon": float(item["lon"]), "type": item.get("type")}
+              for item in raw]
+    await db.geocode_cache.update_one(
+        {"cache_key": cache_key},
+        {"$set": {"cache_key": cache_key, "query": query, "results": results,
+                  "created_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"query": query, "results": results, "cached": False,
+            "attribution": "© OpenStreetMap contributors"}
 
 
 app.include_router(api)
@@ -237,8 +319,11 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await spatial.seed_spatial(mr.BOUNDARIES, mr.PFZ_ZONES)
-    logger.info("ORCA spatial reference data seeded (boundaries + PFZ).")
+    await spatial.seed_spatial(mr.all_boundaries_all_regions(), mr.all_pfz_zones())
+    await db.geocode_cache.create_index("cache_key", unique=True)
+    await db.geocode_cache.create_index("created_at", expireAfterSeconds=2592000)
+    logger.info("ORCA nationwide spatial reference data seeded "
+               f"({len(mr.REGIONS)} regions: {', '.join(mr.REGIONS)}).")
 
 
 @app.on_event("shutdown")

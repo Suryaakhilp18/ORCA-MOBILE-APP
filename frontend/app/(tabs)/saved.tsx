@@ -17,8 +17,8 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api } from "@/src/api";
-import { useApp, t, Lang } from "@/src/context/AppContext";
+import { api, GeoResult } from "@/src/api";
+import { useApp, t, Lang, trackingFor } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 type SavedLoc = {
@@ -32,6 +32,7 @@ type SavedLoc = {
 const ASK_QUERY: Record<Lang, string> = {
   en: "What are the tide, weather and sea conditions near my fishing location?",
   te: "నా ఫిషింగ్ స్థానం దగ్గర అలలు, వాతావరణం మరియు సముద్ర పరిస్థితులు ఎలా ఉన్నాయి?",
+  hi: "मेरी फिशिंग जगह के पास ज्वार, मौसम और समुद्र की स्थिति कैसी है?",
 };
 
 export default function SavedScreen() {
@@ -48,6 +49,9 @@ export default function SavedScreen() {
   const [lon, setLon] = useState("82.31");
   const [isVessel, setIsVessel] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<GeoResult[] | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -74,7 +78,7 @@ export default function SavedScreen() {
         perm = await Location.requestForegroundPermissionsAsync();
       }
       if (perm.status !== "granted") {
-        showToast("Location permission needed. Open settings.", "error");
+        showToast(t("toastPermissionNeeded", lang), "error");
         Linking.openSettings();
         return;
       }
@@ -83,19 +87,47 @@ export default function SavedScreen() {
       });
       setLat(pos.coords.latitude.toFixed(4));
       setLon(pos.coords.longitude.toFixed(4));
-      showToast("Using your current location", "success");
+      showToast(t("toastUsingCurrentLocation", lang), "success");
     } catch {
-      showToast("Could not get location", "error");
+      showToast(t("toastCouldNotGetLocation", lang), "error");
     } finally {
       setLocating(false);
     }
+  };
+
+  const searchLocation = async () => {
+    const q = searchQ.trim();
+    if (q.length < 2) return;
+    setSearching(true);
+    try {
+      const res = await api.geocode(q);
+      if (!res.results?.length) {
+        showToast(t("toastNoMatchingLocation", lang), "error");
+        setSearchResults([]);
+      } else {
+        setSearchResults(res.results.slice(0, 5));
+      }
+    } catch {
+      showToast(t("toastSearchOffline", lang), "error");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const pickSearchResult = (r: GeoResult) => {
+    setLat(r.lat.toFixed(4));
+    setLon(r.lon.toFixed(4));
+    if (!name.trim()) setName(r.display_name.split(",")[0]);
+    setSearchResults(null);
+    setSearchQ("");
+    showToast(`${t("toastCoordsFilledFrom", lang)} ${r.display_name}`, "success");
   };
 
   const save = async () => {
     const la = parseFloat(lat);
     const lo = parseFloat(lon);
     if (!name.trim() || isNaN(la) || isNaN(lo)) {
-      showToast("Enter a name and valid coordinates", "error");
+      showToast(t("toastEnterNameCoords", lang), "error");
       return;
     }
     setBusy(true);
@@ -107,13 +139,15 @@ export default function SavedScreen() {
         user_id: userId,
         is_vessel: isVessel,
       });
-      showToast("Location saved", "success");
+      showToast(t("toastLocationSaved", lang), "success");
       setModal(false);
       setName("");
       setIsVessel(false);
+      setSearchQ("");
+      setSearchResults(null);
       load();
     } catch {
-      showToast("Could not save (offline)", "error");
+      showToast(t("toastCouldNotSaveOffline", lang), "error");
     } finally {
       setBusy(false);
     }
@@ -137,13 +171,13 @@ export default function SavedScreen() {
         user_id: userId,
       });
       if (res.breach) {
-        showToast(`BREACH: ${res.zones[0].name}`, "error");
+        showToast(`${t("toastBreach", lang)}: ${res.zones[0].name}`, "error");
         setTimeout(() => router.push("/(tabs)/alerts"), 900);
       } else {
-        showToast("Clear — no boundary breach", "success");
+        showToast(t("toastClearNoBreach", lang), "success");
       }
     } catch {
-      showToast("Geofence check failed (offline)", "error");
+      showToast(t("toastGeofenceFailedOffline", lang), "error");
     }
   };
 
@@ -162,7 +196,7 @@ export default function SavedScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("saved", lang).toUpperCase()}</Text>
+        <Text style={[styles.title, { letterSpacing: trackingFor(lang, 2) }]}>{t("saved", lang).toUpperCase()}</Text>
         <Ionicons name="bookmark" size={22} color={colors.brand} />
       </View>
 
@@ -183,12 +217,8 @@ export default function SavedScreen() {
           ListEmptyComponent={
             <View testID="saved-empty" style={styles.emptyBox}>
               <Ionicons name="navigate" size={28} color={colors.muted} />
-              <Text style={styles.emptyText}>
-                Save a coordinate to get quick advisories & alerts.
-              </Text>
-              <Text style={styles.hint}>
-                Tip: save 16.96, 82.31 to trigger a geofence-breach demo.
-              </Text>
+              <Text style={styles.emptyText}>{t("savedEmptyTitle", lang)}</Text>
+              <Text style={styles.hint}>{t("savedEmptyHint", lang)}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -220,7 +250,9 @@ export default function SavedScreen() {
                     size={14}
                     color={colors.onSurfaceInverse}
                   />
-                  <Text style={styles.actionText}>ASK</Text>
+                  <Text style={[styles.actionText, { letterSpacing: trackingFor(lang, 1) }]}>
+                    {t("ask", lang)}
+                  </Text>
                 </Pressable>
                 <Pressable
                   testID={`geofence-${item.id}`}
@@ -228,8 +260,13 @@ export default function SavedScreen() {
                   style={[styles.actionBtn, styles.actionBtnAlt]}
                 >
                   <Ionicons name="scan" size={14} color={colors.onSurface} />
-                  <Text style={[styles.actionText, { color: colors.onSurface }]}>
-                    GEOFENCE
+                  <Text
+                    style={[
+                      styles.actionText,
+                      { color: colors.onSurface, letterSpacing: trackingFor(lang, 1) },
+                    ]}
+                  >
+                    {t("geofence", lang)}
                   </Text>
                 </Pressable>
               </View>
@@ -244,7 +281,9 @@ export default function SavedScreen() {
         onPress={() => setModal(true)}
       >
         <Ionicons name="add" size={22} color={colors.onBrand} />
-        <Text style={styles.fabText}>{t("addLocation", lang)}</Text>
+        <Text style={[styles.fabText, { letterSpacing: trackingFor(lang, 1) }]}>
+          {t("addLocation", lang)}
+        </Text>
       </Pressable>
 
       {/* Add location modal */}
@@ -255,25 +294,84 @@ export default function SavedScreen() {
         >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("addLocation", lang)}</Text>
-              <Pressable testID="close-modal" onPress={() => setModal(false)}>
+              <Text style={[styles.modalTitle, { letterSpacing: trackingFor(lang, 1) }]}>
+                {t("addLocation", lang)}
+              </Text>
+              <Pressable
+                testID="close-modal"
+                onPress={() => {
+                  setModal(false);
+                  setSearchQ("");
+                  setSearchResults(null);
+                }}
+              >
                 <Ionicons name="close" size={22} color={colors.onSurface} />
               </Pressable>
             </View>
 
-            <Text style={styles.label}>NAME</Text>
+        <Text style={[styles.label, { letterSpacing: trackingFor(lang, 1) }]}>{t("name", lang)}</Text>
             <TextInput
               testID="loc-name-input"
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Morning fishing spot"
+              placeholder={t("namePlaceholder", lang)}
               placeholderTextColor={colors.muted}
               style={styles.input}
             />
 
+            <Text style={[styles.label, { letterSpacing: trackingFor(lang, 1) }]}>{t("searchAnyLocationLabel", lang)}</Text>
+            <View style={styles.searchRow}>
+              <TextInput
+                testID="loc-search-input"
+                value={searchQ}
+                onChangeText={(v) => {
+                  setSearchQ(v);
+                  if (!v) setSearchResults(null);
+                }}
+                placeholder={t("searchAnyLocation", lang)}
+                placeholderTextColor={colors.muted}
+                style={[styles.input, styles.flex1, { marginBottom: 0 }]}
+                onSubmitEditing={searchLocation}
+                returnKeyType="search"
+              />
+              <Pressable
+                testID="loc-search-btn"
+                onPress={searchLocation}
+                style={styles.searchIconBtn}
+                disabled={searching}
+              >
+                {searching ? (
+                  <ActivityIndicator size="small" color={colors.onBrand} />
+                ) : (
+                  <Ionicons name="search" size={18} color={colors.onBrand} />
+                )}
+              </Pressable>
+            </View>
+            {searchResults !== null && (
+              <View style={styles.searchResultsBox}>
+                {searchResults.length === 0 ? (
+                  <Text style={styles.hint}>{t("noResultsFound", lang)}</Text>
+                ) : (
+                  searchResults.map((r, i) => (
+                    <Pressable
+                      key={`${r.lat}-${r.lon}-${i}`}
+                      testID={`loc-search-result-${i}`}
+                      style={styles.searchResultRow}
+                      onPress={() => pickSearchResult(r)}
+                    >
+                      <Ionicons name="pin" size={14} color={colors.brand} />
+                      <Text style={styles.searchResultText} numberOfLines={2}>
+                        {r.display_name}
+                      </Text>
+                    </Pressable>
+                  ))
+                )}
+              </View>
+            )}
+
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <Text style={styles.label}>LAT</Text>
+                <Text style={[styles.label, { letterSpacing: trackingFor(lang, 1) }]}>{t("lat", lang)}</Text>
                 <TextInput
                   testID="loc-lat-input"
                   value={lat}
@@ -283,7 +381,7 @@ export default function SavedScreen() {
                 />
               </View>
               <View style={styles.flex1}>
-                <Text style={styles.label}>LON</Text>
+                <Text style={[styles.label, { letterSpacing: trackingFor(lang, 1) }]}>{t("lon", lang)}</Text>
                 <TextInput
                   testID="loc-lon-input"
                   value={lon}
@@ -304,11 +402,11 @@ export default function SavedScreen() {
               ) : (
                 <Ionicons name="locate" size={16} color={colors.onSurface} />
               )}
-              <Text style={styles.gpsText}>USE MY LOCATION</Text>
+              <Text style={styles.gpsText}>{t("useMyLocation", lang)}</Text>
             </Pressable>
 
             <View style={styles.switchRow}>
-              <Text style={styles.label}>VESSEL PROFILE</Text>
+              <Text style={[styles.label, { letterSpacing: trackingFor(lang, 1) }]}>{t("vesselProfile", lang)}</Text>
               <Switch
                 testID="vessel-switch"
                 value={isVessel}
@@ -326,7 +424,9 @@ export default function SavedScreen() {
               {busy ? (
                 <ActivityIndicator color={colors.onBrand} />
               ) : (
-                <Text style={styles.saveText}>SAVE LOCATION</Text>
+                <Text style={[styles.saveText, { letterSpacing: trackingFor(lang, 1) }]}>
+                  {t("saveLocationBtn", lang)}
+                </Text>
               )}
             </Pressable>
           </View>
@@ -497,6 +597,36 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", gap: spacing.md },
   flex1: { flex: 1 },
+  searchRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm },
+  searchIconBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brand,
+    borderRadius: radius.sm,
+  },
+  searchResultsBox: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    marginBottom: spacing.md,
+    overflow: "hidden",
+  },
+  searchResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceTertiary,
+  },
+  searchResultText: {
+    flex: 1,
+    fontSize: 11,
+    color: colors.onSurface,
+  },
   gpsBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -2,15 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Lang, trackingFor } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 // Collapsible raw reasoning trace (planner -> agents -> synthesizer) in mono.
 export default function ReasoningTrace({
   trace,
   label,
+  lang = "en",
 }: {
   trace: { agent: string; detail: string }[];
   label: string;
+  lang?: Lang;
 }) {
   const [open, setOpen] = useState(false);
   if (!trace?.length) return null;
@@ -22,7 +25,7 @@ export default function ReasoningTrace({
         style={styles.header}
       >
         <Ionicons name="git-branch" size={14} color={colors.onSurface} />
-        <Text style={styles.headerText}>
+        <Text style={[styles.headerText, { letterSpacing: trackingFor(lang, 1) }]}>
           {label} ({trace.length})
         </Text>
         <Ionicons

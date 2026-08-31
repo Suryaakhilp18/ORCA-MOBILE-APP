@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
+import { Lang, t } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 const CONFIG: Record<
@@ -24,7 +25,7 @@ export type AlertItem = {
   location_name?: string;
 };
 
-export default function AlertCard({ item }: { item: AlertItem }) {
+export default function AlertCard({ item, lang = "en" }: { item: AlertItem; lang?: Lang }) {
   const cfg = CONFIG[item.type || ""] || {
     bg: colors.surfaceInverse,
     fg: colors.onSurfaceInverse,
@@ -40,7 +41,11 @@ export default function AlertCard({ item }: { item: AlertItem }) {
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.text}>{item.body}</Text>
         <View style={styles.metaRow}>
-          {!!item.source && <Text style={styles.meta}>SRC: {item.source}</Text>}
+          {!!item.source && (
+            <Text style={styles.meta}>
+              {t("source", lang)}: {item.source}
+            </Text>
+          )}
           {!!ts && (
             <Text style={styles.meta}>
               {new Date(ts).toLocaleString()}

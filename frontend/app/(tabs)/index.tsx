@@ -17,35 +17,42 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, ChatMessage } from "@/src/api";
 import MessageBubble from "@/src/components/MessageBubble";
 import RadarCard from "@/src/components/RadarCard";
-import { useApp, t, Lang } from "@/src/context/AppContext";
+import RegionSwitcher from "@/src/components/RegionSwitcher";
+import LanguagePicker from "@/src/components/LanguagePicker";
+import { useApp, t, trackingFor, Lang } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
-const SUGGESTIONS: { en: string; te: string }[] = [
+const SUGGESTIONS: { en: string; te: string; hi: string }[] = [
   {
     en: "Is it safe to venture into the sea tomorrow morning?",
     te: "రేపు ఉదయం సముద్రంలోకి వెళ్లడం సురక్షితమేనా?",
+    hi: "क्या कल सुबह समुद्र में जाना सुरक्षित है?",
   },
   {
     en: "Where is the nearest Potential Fishing Zone today?",
     te: "ఈ రోజు దగ్గరి ఫిషింగ్ జోన్ ఎక్కడ ఉంది?",
+    hi: "आज सबसे नज़दीकी फिशिंग ज़ोन कहाँ है?",
   },
   {
     en: "Which regions show high chlorophyll and favourable SST?",
     te: "ఏ ప్రాంతాల్లో అధిక క్లోరోఫిల్ మరియు అనుకూల SST ఉంది?",
+    hi: "किन क्षेत्रों में क्लोरोफिल अधिक और SST अनुकूल है?",
   },
   {
     en: "Are there any lightning or cyclone alerts in my area?",
     te: "నా ప్రాంతంలో పిడుగు లేదా తుఫాను హెచ్చరికలు ఉన్నాయా?",
+    hi: "मेरे क्षेत्र में बिजली या चक्रवात की चेतावनी है क्या?",
   },
 ];
 
 const SAFE_DEFAULT: Record<Lang, string> = {
   en: "Could not verify current conditions (offline). Do not assume it is safe — check local advisories.",
   te: "ప్రస్తుత పరిస్థితులను ధృవీకరించలేకపోయాం (ఆఫ్‌లైన్). సురక్షితమని భావించవద్దు — స్థానిక సలహాలను చూడండి.",
+  hi: "मौजूदा हालात की पुष्टि नहीं हो सकी (ऑफ़लाइन)। इसे सुरक्षित न मानें — स्थानीय सलाह ज़रूर देखें।",
 };
 
 export default function ChatScreen() {
-  const { lang, setLang, sessionId, newSession, userId } = useApp();
+  const { lang, sessionId, newSession, userId, region } = useApp();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const params = useLocalSearchParams<{
@@ -59,6 +66,8 @@ export default function ChatScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [showRegionSwitcher, setShowRegionSwitcher] = useState(false);
+  const [showLangPicker, setShowLangPicker] = useState(false);
   const [activeLoc, setActiveLoc] = useState<{
     name?: string;
     lat: number;
@@ -103,12 +112,18 @@ export default function ChatScreen() {
       setLoading(true);
       setOffline(false);
       scrollEnd();
+      const effectiveLoc = loc ?? activeLoc ?? {
+        name: `${region.name}, ${region.state}`,
+        lat: region.center.lat,
+        lon: region.center.lon,
+      };
       try {
         const resp = await api.chat({
           message: clean,
           session_id: sessionId,
           language: lang,
-          location: loc ?? activeLoc,
+          location: effectiveLoc,
+          region_id: region.id,
           user_id: userId,
         });
         setMessages((p) => [...p, resp.assistant_message]);
@@ -129,7 +144,7 @@ export default function ChatScreen() {
         scrollEnd();
       }
     },
-    [loading, sessionId, lang, activeLoc, userId, scrollEnd],
+    [loading, sessionId, lang, activeLoc, region, userId, scrollEnd],
   );
 
   // Handle deep-link / param from Saved screen
@@ -154,18 +169,29 @@ export default function ChatScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
+        <Pressable
+          testID="region-selector-trigger"
+          style={{ flex: 1 }}
+          onPress={() => setShowRegionSwitcher(true)}
+        >
           <Text style={styles.title}>ORCA</Text>
-          <Text style={styles.subtitle}>
-            {activeLoc?.name || "Kakinada (demo)"} · marine intelligence
-          </Text>
-        </View>
+          <View style={styles.subtitleRow}>
+            <Ionicons name="location" size={11} color={colors.brand} />
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {activeLoc?.name || `${region.name}, ${region.state}`} ·{" "}
+              {t("marineIntelligence", lang)}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={colors.muted} />
+          </View>
+        </Pressable>
         <Pressable
           testID="lang-toggle"
-          onPress={() => setLang(lang === "en" ? "te" : "en")}
+          onPress={() => setShowLangPicker(true)}
           style={styles.langBtn}
         >
-          <Text style={styles.langText}>{lang === "en" ? "EN" : "తె"}</Text>
+          <Text style={styles.langText}>
+            {lang === "en" ? "EN" : lang === "te" ? "తె" : "हि"}
+          </Text>
         </Pressable>
         <Pressable
           testID="new-session"
@@ -178,6 +204,16 @@ export default function ChatScreen() {
           <Ionicons name="create-outline" size={20} color={colors.onSurface} />
         </Pressable>
       </View>
+
+      <LanguagePicker
+        visible={showLangPicker}
+        onClose={() => setShowLangPicker(false)}
+      />
+      <RegionSwitcher
+        visible={showRegionSwitcher}
+        onClose={() => setShowRegionSwitcher(false)}
+        onPickLocation={(loc) => setActiveLoc(loc)}
+      />
 
       {offline && (
         <View style={styles.offlineBar}>
@@ -200,13 +236,13 @@ export default function ChatScreen() {
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={scrollEnd}
           ListEmptyComponent={
-            <EmptyState lang={lang} onPick={(q) => send(q)} />
+            <EmptyState lang={lang} region={region} onPick={(q) => send(q)} />
           }
           ListFooterComponent={
             loading ? (
               <View testID="typing-indicator" style={styles.typing}>
                 <ActivityIndicator size="small" color={colors.brand} />
-                <Text style={styles.typingText}>ORCA is reasoning…</Text>
+                <Text style={styles.typingText}>{t("thinking", lang)}</Text>
               </View>
             ) : null
           }
@@ -243,15 +279,19 @@ export default function ChatScreen() {
 
 function EmptyState({
   lang,
+  region,
   onPick,
 }: {
   lang: Lang;
+  region: { name: string; state: string; center: { lat: number; lon: number }; sea?: string };
   onPick: (q: string) => void;
 }) {
   return (
     <View testID="chat-empty" style={styles.empty}>
-      <RadarCard />
-      <Text style={styles.emptyTitle}>{t("emptyTitle", lang)}</Text>
+      <RadarCard region={region} />
+      <Text style={[styles.emptyTitle, { letterSpacing: trackingFor(lang, 1) }]}>
+        {t("emptyTitle", lang)}
+      </Text>
       <Text style={styles.emptySub}>{t("emptySub", lang)}</Text>
       <View style={styles.suggestions}>
         {SUGGESTIONS.map((s, i) => (
@@ -297,6 +337,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 11,
     color: colors.muted,
+    flexShrink: 1,
+  },
+  subtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
     marginTop: 2,
   },
   langBtn: {

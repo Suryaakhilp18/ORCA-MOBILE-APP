@@ -33,9 +33,14 @@ async def _record(user_id: str, notif: dict) -> dict:
 
 
 async def evaluate_location_hazards(user_id: str, location: dict) -> list[dict]:
-    """Match active IMD alerts to a saved location and record notifications."""
+    """Match active IMD alerts to a saved location and record notifications.
+
+    Region-aware: resolves the nearest supported coastal region to the saved
+    point (India-wide) rather than always using the demo default.
+    """
     created = []
-    for a in mr.get_active_alerts():
+    region, _dist_km = mr.nearest_region(location["lat"], location["lon"])
+    for a in mr.get_active_alerts(region["id"]):
         notif = {
             "type": a["type"],
             "severity": a["severity"],

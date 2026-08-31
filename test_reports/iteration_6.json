@@ -1,0 +1,52 @@
+{
+  "summary": "Deep investigation of user complaint 'updated things not showing, cannot locate PFZ'. ROOT CAUSE IDENTIFIED: NOT a backend/region_id bug and NOT a stale-cache bug. Backend PFZ data, region threading, and chat pipeline are all 100% correct across all 6 regions (14/14 new pytest passed). The real issue is the MapWidget: on ANY web/browser context (this preview URL opened in a browser, as opposed to native Expo Go), react-native-webview renders 'WebView does not support this platform' and the map ALWAYS ends in 'Map failed to load / RETRY' after a 9s timeout - for every single chat response that includes a map widget, including PFZ queries. If the user is opening the preview link in a mobile/desktop browser (very plausible given 'preview.emergentagent.com' URL) instead of the actual Expo Go app, they will NEVER see a visual PFZ pin on the map, which directly matches their complaint 'not even able to locate one PFZ' even though the AI TEXT answer correctly names the exact PFZ zone, distance, species, and depth every time.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "MapWidget.tsx",
+        "issue": "On web/browser platform, react-native-webview cannot render (renders literal text 'React Native WebView does not support this platform.' inside the WebView slot). The component never receives an onMessage 'ready'/'error' postMessage from that inert placeholder, so it sits on an infinite loading spinner for 9s (LOAD_TIMEOUT_MS) before finally flipping to 'Map failed to load' + RETRY. RETRY does not help since WebView will never work on web. This reproduces on EVERY chat response with a map widget (PFZ, safety, route, etc.), for every region.",
+        "testID": "map-widget / map-webview / map-retry",
+        "priority": "HIGH"
+      },
+      {
+        "component": "expo-font (ionicons)",
+        "issue": "Supervisor logs show repeated 'ExpoFontLoader.loadAsync rejected: Font file for ionicons is empty' errors on Metro boot. Icons still rendered correctly in captured screenshots (Ionicons appear fine in tab bar, alerts, saved), so this is currently non-blocking, but worth a look as it indicates a corrupted/empty font asset that could regress icon rendering.",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "TabsLayout (_layout.tsx)",
+        "issue": "Tab bar buttons (Chat/Alerts/Saved) have no testID, so automated tests must navigate via direct URL instead of tapping the tab bar. Also caused a false-positive during manual testing: a Playwright text='Alerts' selector matched a chat suggestion chip containing the substring 'alerts' before it matched the actual tab bar label, sending an unintended chat message instead of switching tabs (test-script issue, not an app bug, but the missing testID makes UI automation fragile for this bar)."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pfz_regions.py",
+    "/app/test_reports/pytest/pfz_results.xml"
+  ],
+  "action_items": [
+    "HIGH: Decide product intent for the web-preview surface. If web browser access is meant to be a fully supported experience (not just an Expo Go companion), MapWidget needs a web-specific fallback that renders an actual map (e.g. a plain <img> static tile mosaic, or a lightweight web maplibre-gl-js integration outside react-native-webview, or Platform.OS==='web' branch using 'react-map-gl'/'maplibre-gl' directly) instead of wrapping MapLibre in react-native-webview (which is native-only). Otherwise, at minimum, show a clear 'Map view available in the mobile app' message plus a TEXTUAL list of the returned PFZ markers (name/lat/lon/distance) as a fallback list so users on web still SEE the located PFZ zones, even without the interactive map.",
+    "MEDIUM: Verify actual native rendering (Expo Go on a real device or simulator) of MapWidget - this environment cannot execute native. If native ALSO fails (e.g. due to the local maplibre-gl.js.html asset not resolving correctly, or CARTO tile key expiring), that would be the true blocking bug matching the user's complaint 1:1. This is the single most important thing to verify next since it's the only untested hypothesis remaining.",
+    "LOW: Investigate the empty ionicons font file warning during Metro boot (does not currently block rendering but should be cleaned up).",
+    "LOW: Add testID to the Tabs.Screen tab bar buttons (e.g. via tabBarButton render prop) for more robust automated testing."
+  ],
+  "critical_code_review_comments": [
+    "orchestrator/agents.py + data_adapters/mock_region.py: region_id threading is correctly implemented end-to-end - no hardcoded DEFAULT_REGION_ID fallback silently overriding user-selected region. Verified via direct backend calls AND live network requests from the UI (region switched to Mumbai -> /api/chat response region.id == 'mumbai', PFZ zone returned was Mumbai's 'Uran Bank', not Kakinada).",
+    "gis/spatial.py nearest_pfz() correctly performs a nationwide $geoNear (no region filter needed) which is architecturally correct since it resolves by true geographic distance from the resolved region's center/GPS - confirmed correct PFZ zone returned per each of the 6 regions.",
+    "MapWidget.tsx: the WebView being unconditionally rendered regardless of Platform.OS is the core issue for the web surface - there is no Platform.OS==='web' guard/fallback anywhere in this file."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (14/14 new PFZ-focused pytest, all 6 regions)", "frontend": "Chat/PFZ text answers, region switching, alerts tab, saved tab, language picker all verified working on web preview; map widget visual rendering fails on web (by WebView platform limitation, not a data/backend bug)"},
+  "seed_data_creation": "None persistent; test sessions prefixed TEST_ for chat/pfz test calls only (in-memory conversations, no cleanup needed).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend PFZ + region_id threading is confirmed 100% correct for all 6 regions (kakinada/chennai/kochi/mumbai/paradip/veraval) - do not re-litigate this, it's solid. The ONLY open question is whether react-native-webview (and therefore MapLibre PFZ pin rendering) actually works in real Expo Go on a native device/simulator. This sandbox can only test the web preview, where WebView is a documented no-op producing 'Map failed to load'. If the user was using the web link (likely, given they'd have been given a 'preview.emergentagent.com' URL) rather than the Expo Go app, this exactly explains 'not even able to locate one PFZ' despite the text answer being correct. Recommend main agent add a Platform.OS==='web' fallback that at least lists the PFZ markers as text/coords so the web experience isn't silently broken.",
+  "rca_of_issue": "User complaint 'not even able to locate one PFZ' does NOT stem from a backend bug (PFZ data and AI answers are correct and specific per region, verified for all 6 regions) or from a stale-cache issue (fresh queries against the live preview URL return live, correct, region-specific data with no evidence of caching staleness - cache-control on backend responses is no-store). It stems from MapWidget.tsx wrapping MapLibre GL in react-native-webview with zero web-platform fallback: on any browser-based access (web preview link), the WebView component is inert ('WebView does not support this platform'), so the visual PFZ marker/pin never renders and the widget times out into a permanent 'Map failed to load' state for every single map-bearing chat response. The text answer (which correctly names the exact zone, e.g. 'Kakinada Bay Mouth' or 'Uran Bank' for Mumbai) is unaffected, but a user who expects to visually 'locate' the PFZ on a map will see nothing on web. Mitigation: add a Platform.OS==='web' branch to MapWidget with either a genuine web map renderer or a textual marker list fallback; separately verify native WebView rendering works correctly on an actual device, since that path remains unverified by any sandbox-based testing so far."
+}

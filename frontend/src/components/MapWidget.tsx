@@ -1,7 +1,14 @@
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { WebView } from "react-native-webview";
 
 import { MapWidgetT } from "@/src/api";
@@ -133,13 +140,55 @@ try {
 </script></body></html>`;
 }
 
+// react-native-webview renders as a permanent no-op on the web platform
+// (it can never fire onMessage/onError/load), so the interactive
+// MapLibre WebView is native-only. On web we render a lightweight,
+// always-visible coordinate list instead of a spinner that times out
+// after LOAD_TIMEOUT_MS with a dead-end "Map failed to load" — this is
+// what makes PFZ zones (and every other marker) locatable from a browser
+// preview, not just from the Expo Go / native app.
+function markerColor(kind: string) {
+  if (kind === "pfz" || kind === "route_safe") return colors.success;
+  if (kind === "route_unsafe") return colors.error;
+  if (kind === "user") return colors.onSurface;
+  return colors.brand;
+}
+
+function WebMarkerList({ widget }: { widget: MapWidgetT }) {
+  const markers = widget.markers || [];
+  return (
+    <View style={styles.webListBox}>
+      {markers.length === 0 ? (
+        <Text style={styles.webListEmpty}>No map markers for this answer.</Text>
+      ) : (
+        markers.map((m, i) => (
+          <View key={`${m.label}-${i}`} style={styles.webListRow}>
+            <View style={[styles.dot, { backgroundColor: markerColor(m.kind), borderRadius: m.kind === "user" ? 8 : 0 }]} />
+            <View style={styles.webListText}>
+              <Text style={styles.webListLabel}>{m.label}</Text>
+              <Text style={styles.webListCoords}>
+                {m.lat.toFixed(4)}, {m.lon.toFixed(4)}
+              </Text>
+            </View>
+          </View>
+        ))
+      )}
+      <Text style={styles.webListHint}>
+        Interactive map renders in the mobile app (Expo Go) — showing coordinates here.
+      </Text>
+    </View>
+  );
+}
+
 export default function MapWidget({ widget }: { widget: MapWidgetT }) {
+  const isWeb = Platform.OS === "web";
   const [libs, setLibs] = useState<Libs | undefined>(undefined);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (isWeb) return;
     let alive = true;
     loadMapLibs().then((l) => {
       if (alive) setLibs(l);
@@ -147,17 +196,17 @@ export default function MapWidget({ widget }: { widget: MapWidgetT }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isWeb]);
 
   useEffect(() => {
-    if (libs === undefined) return;
+    if (isWeb || libs === undefined) return;
     setStatus("loading");
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => setStatus("error"), LOAD_TIMEOUT_MS);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [libs, retryKey]);
+  }, [isWeb, libs, retryKey]);
 
   const onMessage = useCallback((e: any) => {
     try {
@@ -181,39 +230,43 @@ export default function MapWidget({ widget }: { widget: MapWidgetT }) {
       <View style={styles.header}>
         <Text style={styles.headerText}>MAP · MapLibre + CARTO</Text>
       </View>
-      <View style={styles.mapBox}>
-        {libs !== undefined && (
-          <WebView
-            key={retryKey}
-            testID="map-webview"
-            originWhitelist={["*"]}
-            source={{ html: buildHtml(widget, libs), baseUrl: "https://orca.local/" }}
-            javaScriptEnabled
-            domStorageEnabled
-            mixedContentMode="always"
-            scrollEnabled={false}
-            nestedScrollEnabled
-            style={styles.web}
-            androidLayerType="hardware"
-            onMessage={onMessage}
-            onError={() => setStatus("error")}
-          />
-        )}
-        {status !== "ready" && (
-          <View style={styles.overlay} pointerEvents={status === "error" ? "auto" : "none"}>
-            {status === "loading" ? (
-              <ActivityIndicator color={colors.brand} />
-            ) : (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>Map failed to load</Text>
-                <Pressable testID="map-retry" style={styles.retryBtn} onPress={retry}>
-                  <Text style={styles.retryText}>RETRY</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
+      {isWeb ? (
+        <WebMarkerList widget={widget} />
+      ) : (
+        <View style={styles.mapBox}>
+          {libs !== undefined && (
+            <WebView
+              key={retryKey}
+              testID="map-webview"
+              originWhitelist={["*"]}
+              source={{ html: buildHtml(widget, libs), baseUrl: "https://orca.local/" }}
+              javaScriptEnabled
+              domStorageEnabled
+              mixedContentMode="always"
+              scrollEnabled={false}
+              nestedScrollEnabled
+              style={styles.web}
+              androidLayerType="hardware"
+              onMessage={onMessage}
+              onError={() => setStatus("error")}
+            />
+          )}
+          {status !== "ready" && (
+            <View style={styles.overlay} pointerEvents={status === "error" ? "auto" : "none"}>
+              {status === "loading" ? (
+                <ActivityIndicator color={colors.brand} />
+              ) : (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>Map failed to load</Text>
+                  <Pressable testID="map-retry" style={styles.retryBtn} onPress={retry}>
+                    <Text style={styles.retryText}>RETRY</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      )}
       <View style={styles.legend}>
         <Legend color={colors.onSurface} label="You" round />
         <Legend color={colors.success} label="PFZ / Safe" />
@@ -294,6 +347,44 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: colors.brand,
+  },
+  webListBox: {
+    padding: spacing.sm,
+    gap: spacing.xs,
+    backgroundColor: colors.bg,
+  },
+  webListEmpty: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.muted,
+    paddingVertical: spacing.sm,
+  },
+  webListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  webListText: { flex: 1 },
+  webListLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.onSurface,
+  },
+  webListCoords: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  webListHint: {
+    fontFamily: fonts.mono,
+    fontSize: 9,
+    color: colors.muted,
+    paddingTop: spacing.xs,
   },
   legend: {
     flexDirection: "row",

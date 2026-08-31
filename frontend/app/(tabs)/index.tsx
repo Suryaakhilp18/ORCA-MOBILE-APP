@@ -293,8 +293,19 @@ export default function ChatScreen() {
             disabled={voice.state === "transcribing"}
             style={[
               styles.micBtn,
-              voice.state === "recording" && styles.micBtnActive,
+              voice.state === "recording" && styles.micBtnRecording,
+              voice.state === "transcribing" && styles.micBtnTranscribing,
+              voice.state === "speaking" && styles.micBtnSpeaking,
             ]}
+            accessibilityLabel={
+              voice.state === "recording"
+                ? t("voiceListening", lang)
+                : voice.state === "transcribing"
+                ? t("voiceTranscribing", lang)
+                : voice.state === "speaking"
+                ? t("voiceSpeaking", lang)
+                : "Tap to speak"
+            }
           >
             <Ionicons
               name={
@@ -306,8 +317,8 @@ export default function ChatScreen() {
                   ? "ellipsis-horizontal"
                   : "mic"
               }
-              size={19}
-              color={voice.state === "recording" ? colors.onError : colors.onSurface}
+              size={20}
+              color={colors.onBrand}
             />
           </Pressable>
           <TextInput
@@ -402,8 +413,15 @@ const styles = StyleSheet.create({
   subtitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    marginTop: 2,
+    gap: 4,
+    marginTop: 4,
+    alignSelf: "flex-start",
+    backgroundColor: colors.surfaceTertiary,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
   },
   langBtn: {
     borderWidth: 1,
@@ -465,15 +483,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceTertiary,
+    backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
   },
-  micBtnActive: {
+  micBtnRecording: {
     backgroundColor: colors.error,
-    borderColor: colors.error,
+  },
+  micBtnTranscribing: {
+    backgroundColor: colors.warning,
+  },
+  micBtnSpeaking: {
+    backgroundColor: colors.success,
   },
   voiceBar: {
     flexDirection: "row",

@@ -398,9 +398,9 @@ export default function SavedScreen() {
               style={styles.gpsBtn}
             >
               {locating ? (
-                <ActivityIndicator size="small" color={colors.onSurface} />
+                <ActivityIndicator size="small" color={colors.onBrand} />
               ) : (
-                <Ionicons name="locate" size={16} color={colors.onSurface} />
+                <Ionicons name="locate" size={16} color={colors.onBrand} />
               )}
               <Text style={styles.gpsText}>{t("useMyLocation", lang)}</Text>
             </Pressable>
@@ -632,10 +632,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
-    backgroundColor: colors.surfaceTertiary,
+    backgroundColor: colors.brand,
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -643,7 +641,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: type.sm,
     fontWeight: "700",
-    color: colors.onSurface,
+    color: colors.onBrand,
   },
   switchRow: {
     flexDirection: "row",

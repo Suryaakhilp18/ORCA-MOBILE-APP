@@ -250,6 +250,48 @@ export const STRINGS: Record<string, Record<Lang, string>> = {
     te: "జియోఫెన్స్ చెక్ విఫలమైంది (ఆఫ్‌లైన్)",
     hi: "जियोफेंस जांच विफल (ऑफ़लाइन)",
   },
+  situationSummary: {
+    en: "MARINE SITUATION SUMMARY",
+    te: "సముద్ర పరిస్థితి సారాంశం",
+    hi: "समुद्री स्थिति सारांश",
+  },
+  severityCritical: { en: "CRITICAL", te: "అత్యవసరం", hi: "गंभीर" },
+  severityWarning: { en: "WARNING", te: "హెచ్చరిక", hi: "चेतावनी" },
+  severityAdvisory: { en: "ADVISORY", te: "సలహా", hi: "सलाह" },
+  windLabel: { en: "WIND", te: "గాలి", hi: "हवा" },
+  waveLabel: { en: "WAVE", te: "అలలు", hi: "लहर" },
+  lightningLabel: { en: "LIGHTNING", te: "పిడుగులు", hi: "बिजली" },
+  cycloneActiveLabel: {
+    en: "ACTIVE CYCLONIC SYSTEM",
+    te: "సక్రియ తుఫాను వ్యవస్థ",
+    hi: "सक्रिय चक्रवाती तंत्र",
+  },
+  nextTide: { en: "NEXT TIDE", te: "తదుపరి టైడ్", hi: "अगला ज्वार" },
+  todayLabel: { en: "TODAY", te: "ఈరోజు", hi: "आज" },
+  tomorrowLabel: { en: "TOMORROW", te: "రేపు", hi: "कल" },
+  windTrendTitle: {
+    en: "Wind Speed (7-day)",
+    te: "గాలి వేగం (7 రోజులు)",
+    hi: "हवा की गति (7 दिन)",
+  },
+  waveTrendTitle: {
+    en: "Wave Height (7-day)",
+    te: "అల ఎత్తు (7 రోజులు)",
+    hi: "लहर की ऊँचाई (7 दिन)",
+  },
+  sstTrendTitle: {
+    en: "Sea Surface Temp (7-day)",
+    te: "సముద్ర ఉష్ణోగ్రత (7 రోజులు)",
+    hi: "समुद्र सतह तापमान (7 दिन)",
+  },
+  radarScanning: {
+    en: "SCANNING COASTAL SECTOR",
+    te: "తీర ప్రాంతాన్ని స్కాన్ చేస్తోంది",
+    hi: "तटीय क्षेत्र स्कैन हो रहा है",
+  },
+  voiceListening: { en: "LISTENING… TAP TO STOP", te: "వింటోంది… ఆపడానికి నొక్కండి", hi: "सुन रहा है… रोकने के लिए टैप करें" },
+  voiceTranscribing: { en: "UNDERSTANDING…", te: "అర్థం చేసుకుంటోంది…", hi: "समझ रहा है…" },
+  voiceSpeaking: { en: "MARINE COPILOT SPEAKING…", te: "మారిన్ కోపైలట్ మాట్లాడుతోంది…", hi: "मैरीन कोपायलट बोल रहा है…" },
 };
 
 export const t = (key: string, lang: Lang) =>

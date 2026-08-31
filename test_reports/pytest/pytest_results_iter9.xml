@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="22" skipped="0" tests="52" time="50.409" timestamp="2026-08-31T15:03:19.403423+00:00" hostname="agent-env-67adc442-8e25-4184-92e4-1d09ca68711f"><testcase classname="tests.test_orca_backend.TestChat" name="test_flagship_safety_unsafe" time="4.198" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[kakinada]" time="0.005" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[chennai]" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[kochi]" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[mumbai]" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[paradip]" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_situation_fields_populated[veraval]" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_kakinada_severity_is_critical" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_kochi_severity_is_advisory" time="0.002" /><testcase classname="tests.test_situation_and_route.TestSituationEndpoint" name="test_default_region_when_missing" time="0.002" /><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[kakinada]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[chennai]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[kochi]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[mumbai]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[paradip]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZDataEndpoint" name="test_pfz_data_non_empty_per_region[veraval]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?">backend/tests/test_pfz_regions.py:28: in test_pfz_data_non_empty_per_region
+    resp = api_client.get(f"{BASE_URL}/api/data/pfz", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/data/pfz': No scheme supplied. Perhaps you meant https:///api/data/pfz?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[kakinada]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[chennai]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[kochi]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[mumbai]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[paradip]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_pfz_regions.TestPFZChatIntent" name="test_pfz_nearest_chat_per_region[veraval]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?">backend/tests/test_pfz_regions.py:45: in test_pfz_nearest_chat_per_region
+    region_resp = api_client.get(f"{BASE_URL}/api/region", params={"region_id": region_id})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/region': No scheme supplied. Perhaps you meant https:///api/region?</failure></testcase><testcase classname="tests.test_orca_backend.TestHealth" name="test_health" time="0.198" /><testcase classname="tests.test_orca_backend.TestHealth" name="test_boundaries" time="0.072" /><testcase classname="tests.test_orca_backend.TestHealth" name="test_pfz" time="0.069" /><testcase classname="tests.test_voice_situation_route.TestSituation" name="test_situation_structure[kakinada]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?">backend/tests/test_voice_situation_route.py:70: in test_situation_structure
+    resp = api_client.get(f"{BASE_URL}/api/situation", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?</failure></testcase><testcase classname="tests.test_voice_situation_route.TestSituation" name="test_situation_structure[mumbai]" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?">backend/tests/test_voice_situation_route.py:70: in test_situation_structure
+    resp = api_client.get(f"{BASE_URL}/api/situation", params={"region_id": region_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?</failure></testcase><testcase classname="tests.test_voice_situation_route.TestSituation" name="test_kakinada_critical_due_to_cyclone" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?">backend/tests/test_voice_situation_route.py:82: in test_kakinada_critical_due_to_cyclone
+    resp = api_client.get(f"{BASE_URL}/api/situation", params={"region_id": "kakinada"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/situation': No scheme supplied. Perhaps you meant https:///api/situation?</failure></testcase><testcase classname="tests.test_orca_backend.TestAlerts" name="test_alerts_two_active" time="0.141" /><testcase classname="tests.test_orca_backend.TestAlerts" name="test_notifications_exist" time="0.157" /><testcase classname="tests.test_orca_backend.TestGeofence" name="test_breach_true" time="0.071" /><testcase classname="tests.test_orca_backend.TestGeofence" name="test_breach_false_offshore" time="0.077" /><testcase classname="tests.test_pfz_recommendation.TestSafetySailIncludesPfz" name="test_mumbai_safety_question_has_pfz_markers" time="8.640" /><testcase classname="tests.test_orca_backend.TestChat" name="test_flagship_pfz" time="6.166" /><testcase classname="tests.test_pfz_recommendation.TestSafetySailIncludesPfz" name="test_mumbai_safety_question_verdict_present" time="8.269" /><testcase classname="tests.test_orca_backend.TestChat" name="test_chat_telugu" time="6.126" /><testcase classname="tests.test_orca_backend.TestChat" name="test_chat_chlorophyll_sst_two_charts" time="7.207" /><testcase classname="tests.test_pfz_recommendation.TestPfzNearestRecommendation" name="test_pfz_nearest_has_recommended_and_route[mumbai-18.922-72.8347]" time="5.378" /><testcase classname="tests.test_pfz_recommendation.TestPfzNearestRecommendation" name="test_pfz_nearest_has_recommended_and_route[kakinada-16.9891-82.2475]" time="5.429" /><testcase classname="tests.test_orca_backend.TestChat" name="test_chat_alerts_query" time="5.489" /><testcase classname="tests.test_pfz_regions.TestRegionIdThreading" name="test_alerts_region_id_threading" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/alerts': No scheme supplied. Perhaps you meant https:///api/alerts?">backend/tests/test_pfz_regions.py:81: in test_alerts_region_id_threading
+    r1 = api_client.get(f"{BASE_URL}/api/alerts", params={"region_id": "mumbai"})
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:671: in get
+    return self.request("GET", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/alerts': No scheme supplied. Perhaps you meant https:///api/alerts?</failure></testcase><testcase classname="tests.test_pfz_regions.TestRegionIdThreading" name="test_chat_region_id_not_hardcoded_to_default" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?">backend/tests/test_pfz_regions.py:101: in test_chat_region_id_not_hardcoded_to_default
+    resp = api_client.post(f"{BASE_URL}/api/chat", json=payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?</failure></testcase><testcase classname="tests.test_situation_and_route.TestRouteSafetyChat" name="test_route_through_mpa_flags_unsafe" time="6.824" /><testcase classname="tests.test_orca_backend.TestChat" name="test_chat_persistence" time="6.544" /><testcase classname="tests.test_orca_backend.TestChat" name="test_rate_limit" time="14.236" /><testcase classname="tests.test_situation_and_route.TestRouteSafetyChat" name="test_chat_returns_200_and_persists" time="7.326" /><testcase classname="tests.test_voice_situation_route.TestVoiceSpeak" name="test_speak_returns_audio_mpeg" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/voice/speak': No scheme supplied. Perhaps you meant https:///api/voice/speak?">backend/tests/test_voice_situation_route.py:35: in test_speak_returns_audio_mpeg
+    resp = api_client.post(
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/voice/speak': No scheme supplied. Perhaps you meant https:///api/voice/speak?</failure></testcase><testcase classname="tests.test_voice_situation_route.TestVoiceSpeak" name="test_speak_empty_text_400" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/voice/speak': No scheme supplied. Perhaps you meant https:///api/voice/speak?">backend/tests/test_voice_situation_route.py:45: in test_speak_empty_text_400
+    resp = api_client.post(
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/voice/speak': No scheme supplied. Perhaps you meant https:///api/voice/speak?</failure></testcase><testcase classname="tests.test_orca_backend.TestLocations" name="test_crud" time="0.419" /><testcase classname="tests.test_voice_situation_route.TestVoiceTranscribe" name="test_transcribe_silent_audio_no_auth_error" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/voice/transcribe?language=en': No scheme supplied. Perhaps you meant https:///api/voice/transcribe?language=en?">backend/tests/test_voice_situation_route.py:55: in test_transcribe_silent_audio_no_auth_error
+    resp = api_client.post(
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/voice/transcribe?language=en': No scheme supplied. Perhaps you meant https:///api/voice/transcribe?language=en?</failure></testcase><testcase classname="tests.test_voice_situation_route.TestRouteSafetyChat" name="test_route_query_kakinada_to_hope_island" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?">backend/tests/test_voice_situation_route.py:96: in test_route_query_kakinada_to_hope_island
+    resp = api_client.post(
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?</failure></testcase><testcase classname="tests.test_voice_situation_route.TestRouteSafetyChat" name="test_route_query_verdict_in_text" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?">backend/tests/test_voice_situation_route.py:130: in test_route_query_verdict_in_text
+    resp = api_client.post(
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:712: in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/chat': No scheme supplied. Perhaps you meant https:///api/chat?</failure></testcase></testsuite></testsuites>

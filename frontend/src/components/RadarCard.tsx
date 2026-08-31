@@ -1,7 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
-import { colors, fonts, radius, spacing } from "@/src/theme";
+import { Lang, t } from "@/src/context/AppContext";
+import { colors, fonts, radius, severityColor, spacing } from "@/src/theme";
 
 type RegionLite = {
   name: string;
@@ -10,22 +19,50 @@ type RegionLite = {
   sea?: string;
 };
 
-// Console-style telemetry card (mirrors the ORCA command-console reference):
-// coordinates + SST/Chl readouts + safety index + multi-agent status chips.
-// Region-aware: coordinates/sector always reflect the currently selected
-// India-wide coastal region. This is a DEMO BASELINE visualization, not a
-// live radar feed — clearly labelled so it is never mistaken for real-time
-// sensor data.
-export default function RadarCard({ region }: { region?: RegionLite }) {
+// Live-feeling, continuously-animated radar sweep tied to the CURRENT
+// region + rule-computed severity (never invented — colour and index are a
+// deterministic function of `severity`). This is a DEMO BASELINE
+// visualization, not a real sensor feed, clearly labelled as such.
+export default function RadarCard({
+  region,
+  severity = "advisory",
+  windKn,
+  waveM,
+  sstC,
+  lang = "en",
+}: {
+  region?: RegionLite;
+  severity?: "critical" | "warning" | "advisory";
+  windKn?: number;
+  waveM?: number;
+  sstC?: number;
+  lang?: Lang;
+}) {
   const lat = region?.center.lat ?? 16.9891;
   const lon = region?.center.lon ?? 82.2475;
-  const sector = region ? `${region.name} Sector · ${region.sea || "coastal waters"}`
-                       : "Kakinada Sector · Bay of Bengal";
+  const sector = region
+    ? `${region.name} Sector · ${region.sea || "coastal waters"}`
+    : "Kakinada Sector · Bay of Bengal";
+  const sc = severityColor(severity);
+  const index = severity === "critical" ? 32 : severity === "warning" ? 64 : 93;
+
+  const rotation = useSharedValue(0);
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 3200, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, [rotation]);
+  const sweepStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
   return (
     <View testID="radar-card" style={styles.card}>
       <View style={styles.header}>
         <View style={styles.sysRow}>
-          <View style={styles.dot} />
+          <View style={[styles.dot, { backgroundColor: sc.bg }]} />
           <Text style={styles.sys}>SYS://COASTAL-RADAR.01</Text>
         </View>
         <View style={styles.livePill}>
@@ -43,41 +80,49 @@ export default function RadarCard({ region }: { region?: RegionLite }) {
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.metric}>
-              SST: <Text style={styles.metricVal}>28.4°C</Text>
+              SST: <Text style={styles.metricVal}>{sstC != null ? `${sstC}°C` : "—"}</Text>
             </Text>
             <Text style={styles.metric}>
-              Chl-a: <Text style={styles.metricVal}>1.82 mg/m³</Text>
+              {t("windLabel", lang)}: <Text style={styles.metricVal}>{windKn != null ? `${windKn} kn` : "—"}</Text>
+            </Text>
+            <Text style={styles.metric}>
+              {t("waveLabel", lang)}: <Text style={styles.metricVal}>{waveM != null ? `${waveM} m` : "—"}</Text>
             </Text>
           </View>
         </View>
 
-        {/* radar rings motif */}
+        {/* animated radar sweep */}
         <View style={styles.radarBox}>
           <View style={[styles.ring, styles.ring1]} />
           <View style={[styles.ring, styles.ring2]} />
-          <View style={[styles.ring, styles.ring3]} />
-          <View style={styles.sweep} />
+          <View style={[styles.ring, styles.ring3, { borderColor: sc.bg }]} />
+          <Animated.View style={[styles.sweepPivot, sweepStyle]}>
+            <View style={[styles.sweep, { backgroundColor: sc.bg }]} />
+          </Animated.View>
+          <View style={[styles.centerDot, { backgroundColor: sc.bg }]} />
         </View>
 
         <View style={styles.footerRow}>
           <View style={styles.sysRow}>
-            <View style={[styles.dot, { backgroundColor: colors.success }]} />
-            <Text style={styles.safeText}>PFZ-1 Confirmed Safe</Text>
+            <Ionicons name="pulse" size={12} color={sc.bg} />
+            <Text style={[styles.scanText, { color: sc.bg }]}>
+              {t("radarScanning", lang)}
+            </Text>
           </View>
           <Text style={styles.safetyIdx}>
-            SAFETY INDEX: <Text style={styles.metricVal}>94/100</Text>
+            INDEX: <Text style={[styles.metricVal, { color: sc.bg }]}>{index}/100</Text>
           </Text>
         </View>
       </View>
 
       <View style={styles.agents}>
+        <AgentChip icon="water" label="Ocean Agent" value={sstC != null ? `${sstC}°C` : "—"} />
+        <AgentChip icon="cloud" label="Weather Agent" value={windKn != null ? `${windKn} kn` : "—"} />
         <AgentChip
-          icon="water"
-          label="Ocean Agent"
-          value="Thermocline OK"
+          icon="scan"
+          label="Risk Agent"
+          value={severity === "critical" ? "Elevated" : severity === "warning" ? "Watch" : "Clear"}
         />
-        <AgentChip icon="cloud" label="Weather Agent" value="11.4 kts" />
-        <AgentChip icon="scan" label="Geofence Agent" value="Clear" />
       </View>
     </View>
   );
@@ -155,7 +200,7 @@ const styles = StyleSheet.create({
   },
   metricVal: { color: colors.data },
   radarBox: {
-    height: 92,
+    height: 100,
     alignItems: "center",
     justifyContent: "center",
     marginVertical: spacing.sm,
@@ -166,23 +211,37 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 999,
   },
-  ring1: { width: 90, height: 90 },
-  ring2: { width: 60, height: 60 },
-  ring3: { width: 30, height: 30, borderColor: colors.brand },
-  sweep: {
+  ring1: { width: 96, height: 96 },
+  ring2: { width: 64, height: 64 },
+  ring3: { width: 32, height: 32, borderColor: colors.brand },
+  sweepPivot: {
     position: "absolute",
+    width: 96,
+    height: 96,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  sweep: {
     width: 2,
-    height: 45,
-    backgroundColor: colors.brand,
-    top: 1,
-    opacity: 0.6,
+    height: 48,
+    opacity: 0.75,
+  },
+  centerDot: {
+    position: "absolute",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   footerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  safeText: { fontFamily: fonts.mono, fontSize: 11, color: colors.success },
+  scanText: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
   safetyIdx: {
     fontFamily: fonts.mono,
     fontSize: 10,

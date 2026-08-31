@@ -54,6 +54,32 @@ export type Region = {
 
 export type GeoResult = { display_name: string; lat: number; lon: number; type?: string };
 
+export type WeatherSnapshot = {
+  wind_kn: number;
+  gust_kn: number;
+  wave_m: number;
+  condition: string;
+  lightning_pct: number;
+  cyclone: string | null;
+  timeframe: string;
+};
+
+export type TrendSeries = { unit: string; labels: string[]; values: number[] };
+
+export type Situation = {
+  region: string;
+  region_id: string;
+  severity: "critical" | "warning" | "advisory";
+  verdict: string;
+  reasons: string[];
+  weather_today: WeatherSnapshot;
+  weather_tomorrow: WeatherSnapshot;
+  alerts: any[];
+  tide: { type: string; time: string; height_m: number }[];
+  trends: { wind: TrendSeries; wave: TrendSeries; sst: TrendSeries };
+  generated_at: string;
+};
+
 export const api = {
   chat: (body: {
     message: string;
@@ -71,6 +97,33 @@ export const api = {
     req(`/alerts${region_id ? `?region_id=${region_id}` : ""}`),
   getNotifications: (user_id = "demo-user") =>
     req(`/notifications?user_id=${user_id}`),
+  getSituation: (region_id?: string): Promise<Situation> =>
+    req(`/situation${region_id ? `?region_id=${region_id}` : ""}`),
+  voiceTranscribe: async (fileUri: string, language: string): Promise<{ text: string }> => {
+    const form = new FormData();
+    form.append("audio", { uri: fileUri, name: "voice.m4a", type: "audio/m4a" } as any);
+    const res = await fetch(`${BASE}/voice/transcribe?language=${language}`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status}: ${text || res.statusText}`);
+    }
+    return res.json();
+  },
+  voiceSpeak: async (text: string, language: string): Promise<ArrayBuffer> => {
+    const res = await fetch(`${BASE}/voice/speak`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`${res.status}: ${errText || res.statusText}`);
+    }
+    return res.arrayBuffer();
+  },
 
   listLocations: (user_id = "demo-user") =>
     req(`/locations?user_id=${user_id}`),

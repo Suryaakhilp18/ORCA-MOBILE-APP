@@ -15,7 +15,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 import httpx
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
@@ -24,6 +25,8 @@ from db import clean, db
 from gis import spatial
 from notifications import service as notif
 from orchestrator import agents
+from orchestrator.rules import evaluate_sea_safety, compute_situation_severity
+from voice import service as voice
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -44,6 +47,20 @@ def _rate_limited(key: str) -> bool:
     hits.append(now)
     _HITS[key] = hits
     return len(hits) > CHAT_LIMIT
+
+
+# Voice calls hit a real paid ElevenLabs quota, so they get their own
+# (tighter) budget separate from the free chat rate limit above.
+VOICE_LIMIT = 15
+VOICE_WINDOW = 60
+
+
+def _voice_rate_limited(key: str) -> bool:
+    now = time.time()
+    hits = [t for t in _HITS[key] if now - t < VOICE_WINDOW]
+    hits.append(now)
+    _HITS[key] = hits
+    return len(hits) > VOICE_LIMIT
 
 
 # ---- Nominatim geocoding: app-wide 1 req/sec throttle per usage policy -----
@@ -211,6 +228,40 @@ async def get_notifications(user_id: str = "demo-user"):
     return await notif.list_notifications(user_id)
 
 
+# ---------------------- alert intelligence / situation ----------------------
+@api.get("/situation")
+async def get_situation(region_id: str | None = None):
+    """Aggregated 'Marine Situation & Alert Intelligence' snapshot for the
+    Alerts tab: today/tomorrow weather, the DETERMINISTIC safety verdict +
+    reasons, active hazard bulletins, tide table, and 7-day wind/wave/SST
+    trend series — everything the redesigned Alerts tab needs in one call.
+    Severity (critical/warning/advisory) is rule-computed, never LLM-guessed.
+    """
+    r = mr.get_region(region_id)
+    today = mr.get_weather(region_id, "today")
+    tomorrow = mr.get_weather(region_id, "tomorrow")
+    safety = evaluate_sea_safety(today)
+    alerts = mr.get_active_alerts(region_id)
+    severity = compute_situation_severity(safety["verdict"], alerts)
+    tide = mr.get_tide_table(region_id)
+    return {
+        "region": f"{r['name']}, {r['state']}", "region_id": r["id"],
+        "severity": severity,
+        "verdict": safety["verdict"],
+        "reasons": safety["reasons"],
+        "weather_today": today,
+        "weather_tomorrow": tomorrow,
+        "alerts": alerts,
+        "tide": tide["events"],
+        "trends": {
+            "wind": mr.get_wind_trend(region_id),
+            "wave": mr.get_wave_trend(region_id),
+            "sst": mr.get_sst_trend(region_id),
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # --------------------------------- geofence ----------------------------------
 @api.post("/geofence/check")
 async def geofence_check(req: GeofenceCheckRequest):
@@ -304,6 +355,51 @@ async def geocode(q: str = Query(min_length=2, max_length=200), limit: int = 5):
     )
     return {"query": query, "results": results, "cached": False,
             "attribution": "© OpenStreetMap contributors"}
+
+
+# ------------------------------- voice agent ---------------------------------
+class SpeakRequest(BaseModel):
+    text: str
+    language: str = "en"  # en | hi | te — matches the app's UI language
+
+
+@api.post("/voice/transcribe")
+async def voice_transcribe(request: Request, audio: UploadFile = File(...),
+                           language: str = Query("en")):
+    """Speech -> text (ElevenLabs Scribe). The transcript is then sent to
+    /api/chat exactly like a typed message — the orchestrator/safety logic
+    is completely unchanged by voice input."""
+    client_key = f"voice:{request.client.host if request.client else 'anon'}"
+    if _voice_rate_limited(client_key):
+        raise HTTPException(status_code=429, detail="Voice rate limit reached, try again shortly")
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio")
+    try:
+        text = await voice.transcribe_audio(audio_bytes, audio.filename or "voice.m4a", language)
+    except voice.VoiceUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not text:
+        raise HTTPException(status_code=422, detail="Could not understand audio, please try again")
+    return {"text": text}
+
+
+@api.post("/voice/speak")
+async def voice_speak(payload: SpeakRequest, request: Request):
+    """Text -> speech (ElevenLabs, mp3). Used to read the assistant's reply
+    aloud — the text itself always comes from the orchestrator, never
+    generated here."""
+    client_key = f"voice:{request.client.host if request.client else 'anon'}"
+    if _voice_rate_limited(client_key):
+        raise HTTPException(status_code=429, detail="Voice rate limit reached, try again shortly")
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty text")
+    try:
+        audio_bytes = await voice.synthesize_speech(text[:2000], payload.language)
+    except voice.VoiceUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
 app.include_router(api)

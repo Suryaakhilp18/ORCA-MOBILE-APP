@@ -113,6 +113,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": 1},
         "sst_trend": [28.9, 28.7, 28.6, 28.5, 28.4, 28.3, 28.4],
         "chl_trend": [1.2, 1.4, 1.6, 1.9, 2.1, 2.2, 2.1],
+        "wind_trend": [10, 11, 12, 13, 13, 14, 14],
+        "wave_trend": [0.9, 1.0, 1.0, 1.1, 1.1, 1.2, 1.2],
         "tide_events": [
             {"type": "High", "time": "05:42 IST", "height_m": 1.4},
             {"type": "Low", "time": "11:58 IST", "height_m": 0.3},
@@ -168,6 +170,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": 1},
         "sst_trend": [29.8, 29.7, 29.6, 29.5, 29.5, 29.4, 29.5],
         "chl_trend": [0.9, 1.0, 1.1, 1.0, 0.9, 1.0, 1.1],
+        "wind_trend": [10, 10, 11, 11, 12, 12, 12],
+        "wave_trend": [0.8, 0.8, 0.9, 0.9, 1.0, 1.0, 1.0],
         "tide_events": [
             {"type": "High", "time": "04:58 IST", "height_m": 1.1},
             {"type": "Low", "time": "10:40 IST", "height_m": 0.2},
@@ -216,6 +220,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": -1},
         "sst_trend": [28.5, 28.4, 28.3, 28.2, 28.1, 28.0, 28.1],
         "chl_trend": [2.4, 2.7, 3.0, 3.2, 3.4, 3.3, 3.1],
+        "wind_trend": [9, 9, 9, 10, 10, 10, 10],
+        "wave_trend": [0.7, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8],
         "tide_events": [
             {"type": "High", "time": "06:10 IST", "height_m": 1.0},
             {"type": "Low", "time": "12:20 IST", "height_m": 0.2},
@@ -271,6 +277,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": -1},
         "sst_trend": [27.9, 27.8, 27.7, 27.6, 27.5, 27.5, 27.6],
         "chl_trend": [1.5, 1.6, 1.8, 1.9, 2.0, 1.9, 1.8],
+        "wind_trend": [13, 14, 14, 15, 15, 16, 16],
+        "wave_trend": [1.2, 1.3, 1.3, 1.4, 1.4, 1.5, 1.5],
         "tide_events": [
             {"type": "High", "time": "05:20 IST", "height_m": 2.1},
             {"type": "Low", "time": "11:35 IST", "height_m": 0.5},
@@ -333,6 +341,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": 1},
         "sst_trend": [29.0, 28.9, 28.8, 28.7, 28.6, 28.6, 28.7],
         "chl_trend": [1.8, 2.0, 2.2, 2.4, 2.6, 2.5, 2.3],
+        "wind_trend": [12, 13, 14, 15, 15, 16, 16],
+        "wave_trend": [1.0, 1.1, 1.2, 1.3, 1.3, 1.4, 1.4],
         "tide_events": [
             {"type": "High", "time": "05:05 IST", "height_m": 1.6},
             {"type": "Low", "time": "11:15 IST", "height_m": 0.4},
@@ -381,6 +391,8 @@ REGIONS: dict[str, dict] = {
         "grid_dir": {"lat_step": 1, "lon_step": -1},
         "sst_trend": [26.9, 26.8, 26.7, 26.6, 26.5, 26.5, 26.6],
         "chl_trend": [1.2, 1.3, 1.4, 1.5, 1.6, 1.5, 1.4],
+        "wind_trend": [9, 9, 10, 10, 10, 11, 11],
+        "wave_trend": [0.7, 0.7, 0.8, 0.8, 0.8, 0.9, 0.9],
         "tide_events": [
             {"type": "High", "time": "04:40 IST", "height_m": 1.9},
             {"type": "Low", "time": "10:55 IST", "height_m": 0.4},
@@ -533,6 +545,14 @@ def get_sst_trend(region_id: str | None = None) -> dict:
 
 def get_chl_trend(region_id: str | None = None) -> dict:
     return _trend(region_id, "chl_trend", "ISRO / Bhuvan Chlorophyll time-series", "mg/m³")
+
+
+def get_wind_trend(region_id: str | None = None) -> dict:
+    return _trend(region_id, "wind_trend", "IMD Marine Weather time-series", "kn")
+
+
+def get_wave_trend(region_id: str | None = None) -> dict:
+    return _trend(region_id, "wave_trend", "INCOIS Ocean State time-series", "m")
 
 
 # ---------------------------------------------------------------------------

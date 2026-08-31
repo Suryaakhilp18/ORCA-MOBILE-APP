@@ -19,6 +19,7 @@ import MessageBubble from "@/src/components/MessageBubble";
 import RadarCard from "@/src/components/RadarCard";
 import RegionSwitcher from "@/src/components/RegionSwitcher";
 import LanguagePicker from "@/src/components/LanguagePicker";
+import { useVoiceAgent } from "@/src/hooks/useVoiceAgent";
 import { useApp, t, trackingFor, Lang } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
@@ -75,6 +76,7 @@ export default function ChatScreen() {
   } | null>(null);
   const listRef = useRef<FlatList>(null);
   const sentParam = useRef<string | null>(null);
+  const voice = useVoiceAgent(lang);
 
   const scrollEnd = useCallback(() => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 120);
@@ -97,7 +99,11 @@ export default function ChatScreen() {
   }, [sessionId, scrollEnd]);
 
   const send = useCallback(
-    async (text: string, loc?: { name?: string; lat: number; lon: number } | null) => {
+    async (
+      text: string,
+      loc?: { name?: string; lat: number; lon: number } | null,
+      viaVoice = false,
+    ) => {
       const clean = text.trim();
       if (!clean || loading) return;
       const now = new Date().toISOString();
@@ -127,6 +133,9 @@ export default function ChatScreen() {
           user_id: userId,
         });
         setMessages((p) => [...p, resp.assistant_message]);
+        if (viaVoice && resp.assistant_message?.content) {
+          voice.speak(resp.assistant_message.content, lang);
+        }
       } catch {
         setOffline(true);
         setMessages((p) => [
@@ -144,7 +153,7 @@ export default function ChatScreen() {
         scrollEnd();
       }
     },
-    [loading, sessionId, lang, activeLoc, region, userId, scrollEnd],
+    [loading, sessionId, lang, activeLoc, region, userId, scrollEnd, voice],
   );
 
   // Handle deep-link / param from Saved screen
@@ -164,6 +173,17 @@ export default function ChatScreen() {
       send(params.q, loc);
     }
   }, [params.q, params.lat, params.lon, params.locName, sessionId, send]);
+
+  const onMicPress = useCallback(async () => {
+    if (voice.state === "recording") {
+      const text = await voice.stopRecording();
+      if (text) send(text, undefined, true);
+    } else if (voice.state === "speaking") {
+      voice.stopSpeaking();
+    } else if (voice.state === "idle") {
+      await voice.startRecording();
+    }
+  }, [voice, send]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -248,8 +268,48 @@ export default function ChatScreen() {
           }
         />
 
+        {/* Voice status banner */}
+        {(voice.state === "recording" || voice.state === "transcribing" || voice.state === "speaking") && (
+          <View testID="voice-status-bar" style={styles.voiceBar}>
+            {voice.state === "recording" && <View style={styles.recDot} />}
+            {voice.state !== "recording" && (
+              <ActivityIndicator size="small" color={colors.brand} />
+            )}
+            <Text style={styles.voiceBarText}>
+              {voice.state === "recording"
+                ? t("voiceListening", lang)
+                : voice.state === "transcribing"
+                ? t("voiceTranscribing", lang)
+                : t("voiceSpeaking", lang)}
+            </Text>
+          </View>
+        )}
+
         {/* Input */}
         <View style={styles.inputBar}>
+          <Pressable
+            testID="mic-button"
+            onPress={onMicPress}
+            disabled={voice.state === "transcribing"}
+            style={[
+              styles.micBtn,
+              voice.state === "recording" && styles.micBtnActive,
+            ]}
+          >
+            <Ionicons
+              name={
+                voice.state === "recording"
+                  ? "stop"
+                  : voice.state === "speaking"
+                  ? "volume-high"
+                  : voice.state === "transcribing"
+                  ? "ellipsis-horizontal"
+                  : "mic"
+              }
+              size={19}
+              color={voice.state === "recording" ? colors.onError : colors.onSurface}
+            />
+          </Pressable>
           <TextInput
             testID="chat-input"
             value={input}
@@ -400,6 +460,42 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderColor: colors.border,
+  },
+  micBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micBtnActive: {
+    backgroundColor: colors.error,
+    borderColor: colors.error,
+  },
+  voiceBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surfaceTertiary,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  recDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.error,
+  },
+  voiceBarText: {
+    fontFamily: fonts.mono,
+    fontSize: type.sm,
+    color: colors.onSurface,
+    fontWeight: "700",
   },
   input: {
     flex: 1,

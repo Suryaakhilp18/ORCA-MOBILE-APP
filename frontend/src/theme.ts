@@ -55,3 +55,12 @@ export const verdictColor = (v?: string | null) => {
   if (v === "CAUTION") return { bg: colors.warning, fg: colors.onWarning };
   return { bg: colors.surfaceTertiary, fg: colors.onSurface };
 };
+
+// Alert-severity color mapping (Alerts tab "Marine Situation & Alert
+// Intelligence Center") — critical > warning > advisory. Purely a colour
+// lookup; the actual tier is computed deterministically on the backend.
+export const severityColor = (s?: string | null) => {
+  if (s === "critical") return { bg: colors.error, fg: colors.onError };
+  if (s === "warning") return { bg: colors.warning, fg: colors.onWarning };
+  return { bg: colors.success, fg: colors.onSuccess }; // advisory
+};

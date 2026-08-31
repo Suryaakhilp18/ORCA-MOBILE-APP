@@ -102,6 +102,17 @@ def _planner_system(region_hint: dict, lang_hint: str | None) -> str:
         '  "route": {"start":{"lat":number,"lon":number},"end":{"lat":number,"lon":number}} | null,\n'
         '  "datasets": string[]  (subset of ["pfz","weather","sst","chl","tide","alerts","boundaries"])\n'
         "}\n"
+        "ROUTE COORDINATES — CRITICAL (a common mistake): 'route' represents "
+        "a BOAT's path through OPEN WATER, never through land. If the user "
+        "names a coastal town/harbor/village as start or end (e.g. "
+        "'Kakinada', 'Chennai'), do NOT use that town's on-land/city-centre "
+        "coordinates — using your own knowledge of the Indian coastline's "
+        "shape, shift the point a few km further out, into the sea in front "
+        "of that town, so BOTH the point itself and the straight line "
+        "between start and end stay over water and never cross a peninsula, "
+        "island, bay mouth landmass, or riverbank. If the user names an "
+        "island, fishing zone, or offshore landmark, that is already a sea "
+        "point — use it as given.\n"
         "LANGUAGE DETECTION RULES (priority order):\n"
         "- 'te' = Telugu, 'hi' = Hindi, 'en' = English.\n"
         "- STEP 1: If the message is written in Telugu script, Devanagari "
@@ -229,7 +240,7 @@ async def run_specialists(plan: dict, loc: dict, region_id: str) -> dict:
                                  "with SST 27-29°C indicates favourable feeding zones.")})
 
     # Geospatial / Risk Agent
-    if intent == "pfz_nearest":
+    if intent == "pfz_nearest" or "pfz" in needed:
         zones = await spatial.nearest_pfz(loc["lat"], loc["lon"], limit=3)
         data["nearest_pfz"] = zones
         adv = mr.get_pfz_advisory(region_id)
@@ -238,6 +249,27 @@ async def run_specialists(plan: dict, loc: dict, region_id: str) -> dict:
                       "detail": (f"Nationwide PostGIS-style $geoNear from "
                                  f"({loc['lat']},{loc['lon']}) returned "
                                  f"{len(zones)} PFZ sorted by distance.")})
+        # Recommend the SAFEST reachable zone: check a route to each of the
+        # nearest candidates (closest first) and pick the first fully-clear
+        # one; if none are fully clear, recommend whichever has the fewest
+        # unsafe waypoints. This is what actually plots a "safe route to
+        # fish" on the map, not just a list of PFZ names.
+        best = None
+        for z in zones:
+            rr = await spatial.route_safety(loc, {"lat": z["lat"], "lon": z["lon"]})
+            if best is None or rr["unsafe_count"] < best["route"]["unsafe_count"]:
+                best = {"zone": z, "route": rr}
+            if rr["unsafe_count"] == 0:
+                break
+        if best:
+            data["route"] = best["route"]
+            data["recommended_pfz"] = best["zone"]
+            citations.append("Bundled maritime boundary layer (route safety check)")
+            trace.append({"agent": "Geospatial/Risk Agent",
+                          "detail": (f"Checked safe-path routing to the nearest PFZ "
+                                     f"candidates; recommending {best['zone']['name']} "
+                                     f"with {best['route']['unsafe_count']} unsafe "
+                                     f"waypoint(s) on the plotted route.")})
     if intent in ("geofence_avoid", "conditions", "safety_sail"):
         breaches = await spatial.geofence_check(loc["lat"], loc["lon"])
         data["geofence"] = breaches
@@ -291,7 +323,7 @@ async def run_specialists(plan: dict, loc: dict, region_id: str) -> dict:
 def _discover(intent: str) -> list[str]:
     table = {
         "pfz_nearest": ["pfz", "sst", "chl", "weather"],
-        "safety_sail": ["weather", "alerts", "tide"],
+        "safety_sail": ["weather", "alerts", "tide", "pfz"],
         "conditions": ["weather", "tide", "sst"],
         "alerts_query": ["alerts"],
         "chlorophyll_sst": ["sst", "chl", "pfz"],
@@ -319,10 +351,12 @@ def _build_widgets(intent: str, loc: dict, data: dict) -> list[dict]:
     layers = []
 
     if data.get("nearest_pfz"):
+        rec_key = (data.get("recommended_pfz") or {}).get("key")
         for z in data["nearest_pfz"]:
+            is_rec = data.get("recommended_pfz") and z.get("key") == rec_key
             markers.append({"lat": z["lat"], "lon": z["lon"],
-                            "label": f"{z['name']} ({z['distance_km']} km)",
-                            "kind": "pfz"})
+                            "label": f"{'★ RECOMMENDED — ' if is_rec else ''}{z['name']} ({z['distance_km']} km)",
+                            "kind": "pfz_recommended" if is_rec else "pfz"})
     if data.get("boundaries"):
         layers.append({"type": "boundary", "features": data["boundaries"]})
     if data.get("avoid_zones"):
@@ -333,10 +367,38 @@ def _build_widgets(intent: str, loc: dict, data: dict) -> list[dict]:
                        "metric": "chl" if intent != "pfz_nearest" else "sst",
                        "grid": data["ocean_grid"]["grid"]})
     if data.get("route"):
-        for s in data["route"]["segments"]:
-            markers.append({"lat": s["lat"], "lon": s["lon"],
-                            "label": s["reason"] or ("safe" if s["safe"] else "unsafe"),
-                            "kind": "route_safe" if s["safe"] else "route_unsafe"})
+        segs = data["route"]["segments"]
+        # A "safe route to a recommended PFZ" starts at the user's own
+        # location and ends exactly on a PFZ marker already added above —
+        # skip re-adding duplicate START/DESTINATION pins for those, only a
+        # named point-to-point route (route_safety intent) gets them.
+        is_pfz_route = "recommended_pfz" in data
+        # Start / destination get distinct, clearly-labelled markers; every
+        # intermediate sampled point is colour-coded safe(green)/unsafe(red)
+        # so the whole path — not just its endpoints — is visible on the map.
+        for i, s in enumerate(segs):
+            if i == 0:
+                if is_pfz_route:
+                    continue
+                label, kind = "START", "route_start"
+            elif i == len(segs) - 1:
+                if is_pfz_route:
+                    continue
+                label, kind = "DESTINATION", "route_end"
+            else:
+                label = s["reason"] or ("Safe stretch" if s["safe"] else "Unsafe stretch")
+                kind = "route_safe" if s["safe"] else "route_unsafe"
+            markers.append({"lat": s["lat"], "lon": s["lon"], "label": label, "kind": kind})
+        # A connected polyline (not just dots) between consecutive sampled
+        # points, one coloured segment per pair, so the ACTUAL route path is
+        # drawn end-to-end and unsafe stretches are visually obvious.
+        route_segments = []
+        for a, b in zip(segs, segs[1:]):
+            route_segments.append({
+                "a": [a["lon"], a["lat"]], "b": [b["lon"], b["lat"]],
+                "unsafe": (not a["safe"]) or (not b["safe"]),
+            })
+        layers.append({"type": "route_line", "segments": route_segments})
 
     # Map widget (skip pure alert queries)
     if intent != "alerts_query":
@@ -389,6 +451,14 @@ SYNTH_SYSTEM = (
     "plain spoken sentences only, as if you were talking, not writing a memo.\n"
     "- Do NOT mirror the user's grammar mistakes; understand their intent and "
     "still reply cleanly and naturally.\n"
+    "ROUTE QUERIES: if 'route_summary' is present in the data, this is a "
+    "route-safety check between a start and destination point. You MUST "
+    "explicitly and unambiguously state whether the ROUTE (not just the "
+    "general sea) is safe to sail, and if any stretch of it passes through "
+    "a restricted/hazardous zone, name that zone and mention roughly how "
+    "many of the sampled points along the path were unsafe. Make it obvious "
+    "this is about the whole path from start to destination, e.g. 'the "
+    "route you're planning...' — the user has a map showing this path.\n"
     "LANGUAGE & STYLE MATCHING:\n"
     "- Reply entirely in the given 'language': 'en' = English, 'te' = Telugu, "
     "'hi' = Hindi.\n"
@@ -406,6 +476,7 @@ SYNTH_SYSTEM = (
 
 async def run_synthesizer(session_id: str, message: str, plan: dict,
                           result: dict) -> str:
+    data = result.get("data", {})
     payload = {
         "user_question": message,
         "language": plan.get("language", "en"),
@@ -413,9 +484,29 @@ async def run_synthesizer(session_id: str, message: str, plan: dict,
         "intent": plan["intent"],
         "region": f"{result['region']['name']}, {result['region']['state']}",
         "verdict": result.get("verdict"),
-        "data": _slim(result.get("data", {})),
+        "data": _slim(data),
         "sources": result.get("citations", []),
     }
+    if data.get("route"):
+        route = data["route"]
+        rec = data.get("recommended_pfz")
+        dest = f"the recommended fishing zone ({rec['name']})" if rec else "the planned route"
+        if route["unsafe_count"] > 0:
+            hazard_names = _dedupe([s["reason"] for s in route["segments"] if s.get("reason")])
+            payload["route_summary"] = (
+                f"{route['unsafe_count']} of {route['total']} sampled points along "
+                f"the path to {dest} pass through restricted/hazardous zone(s): "
+                f"{', '.join(hazard_names) or 'unspecified'}. "
+                + ("This is the LEAST-unsafe of the nearby zones checked — mention this "
+                   "clearly and suggest extra caution." if rec else "Route is NOT fully safe.")
+            )
+        else:
+            payload["route_summary"] = (
+                f"All {route['total']} sampled points along the path to {dest} are "
+                "clear of restricted/hazardous zones."
+                + (" Mention that a safe route to this zone has been plotted on the map."
+                   if rec else "")
+            )
     try:
         prompt = ("Produce the answer from this result JSON:\n"
                   + json.dumps(payload, ensure_ascii=False, default=str))
@@ -471,6 +562,29 @@ def _fallback_answer(plan: dict, result: dict) -> str:
         return (f"Nearest Potential Fishing Zone: {z['name']} (~{z['distance_km']} km), "
                 f"SST {z['sst_c']}°C, chlorophyll {z['chl_mg_m3']} mg/m³. "
                 "Source: INCOIS PFZ advisory (demo data).")
+    if plan["intent"] == "route_safety" and data.get("route"):
+        route = data["route"]
+        if route["unsafe_count"] > 0:
+            hazard_names = _dedupe([s["reason"] for s in route["segments"] if s.get("reason")])
+            msg = {
+                "en": (f"This route is NOT fully safe — {route['unsafe_count']} of "
+                      f"{route['total']} checkpoints along it pass through "
+                      f"{', '.join(hazard_names) or 'a restricted zone'}. Consider a "
+                      "different path."),
+                "te": (f"ఈ మార్గం పూర్తిగా సురక్షితం కాదు — {route['total']} పాయింట్లలో "
+                      f"{route['unsafe_count']} {', '.join(hazard_names) or 'నిషేధిత జోన్'} "
+                      "గుండా వెళ్తున్నాయి. వేరే మార్గం చూడండి."),
+                "hi": (f"यह मार्ग पूरी तरह सुरक्षित नहीं है — {route['total']} में से "
+                      f"{route['unsafe_count']} बिंदु {', '.join(hazard_names) or 'प्रतिबंधित क्षेत्र'} "
+                      "से गुज़र रहे हैं। कोई दूसरा रास्ता देखें।"),
+            }
+        else:
+            msg = {
+                "en": f"This route looks clear — all {route['total']} checkpoints along it are free of restricted/hazardous zones.",
+                "te": f"ఈ మార్గం క్లియర్‌గా ఉంది — అన్ని {route['total']} పాయింట్లు సురక్షితంగా ఉన్నాయి.",
+                "hi": f"यह मार्ग साफ़ दिख रहा है — सभी {route['total']} बिंदु सुरक्षित हैं।",
+            }
+        return msg.get(lang, msg["en"]) + (" (AI explanation unavailable — safe-default rule check.)" if lang == "en" else "")
     msg = {
         "en": "Could not verify current conditions from the AI service right now. "
              "Do not assume it is safe — please check local advisories.",

@@ -65,3 +65,17 @@ def evaluate_sea_safety(weather: dict) -> dict:
             "lightning_pct": lightning, "cyclone": cyclone,
         },
     }
+
+
+def compute_situation_severity(verdict: str, alerts: list[dict]) -> str:
+    """Deterministic 3-tier alert severity for the Alerts tab: the LLM never
+    decides this — it is purely a function of the rule-based sea-safety
+    verdict plus any active hazard bulletins' own severity field.
+    critical > warning > advisory (the calm/default state)."""
+    has_high = any(a.get("severity") == "high" for a in alerts)
+    has_moderate = any(a.get("severity") == "moderate" for a in alerts)
+    if verdict == "UNSAFE" or has_high:
+        return "critical"
+    if verdict == "CAUTION" or has_moderate:
+        return "warning"
+    return "advisory"

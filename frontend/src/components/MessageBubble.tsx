@@ -1,11 +1,13 @@
-import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { memo, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChatMessage } from "@/src/api";
 import ChartWidget from "@/src/components/ChartWidget";
 import MapWidget from "@/src/components/MapWidget";
 import ReasoningTrace from "@/src/components/ReasoningTrace";
 import VerdictBadge from "@/src/components/VerdictBadge";
+import { useVoiceAgent } from "@/src/hooks/useVoiceAgent";
 import { Lang, t, trackingFor } from "@/src/context/AppContext";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
@@ -38,9 +40,12 @@ function MessageBubble({ msg, lang }: { msg: ChatMessage; lang: Lang }) {
 
   return (
     <View testID="msg-assistant" style={styles.aiWrap}>
-      <View style={styles.aiHeader}>
-        <View style={styles.aiDot} />
-        <Text style={styles.aiTag}>ORCA</Text>
+      <View style={styles.aiHeaderRow}>
+        <View style={styles.aiHeader}>
+          <View style={styles.aiDot} />
+          <Text style={styles.aiTag}>ORCA</Text>
+        </View>
+        <ListenButton text={msg.content} lang={lang} />
       </View>
       <View style={styles.aiBubble}>
         <VerdictBadge verdict={msg.verdict} lang={lang} />
@@ -77,6 +82,39 @@ function MessageBubble({ msg, lang }: { msg: ChatMessage; lang: Lang }) {
   );
 }
 
+// Manual "listen" replay control shown on every assistant reply — lets the
+// user hear ANY answer aloud (Marine Copilot TTS), not just voice-initiated
+// ones, which auto-play from the chat screen already.
+function ListenButton({ text, lang }: { text: string; lang: Lang }) {
+  const voice = useVoiceAgent(lang);
+  const [pressed, setPressed] = useState(false);
+  const speaking = voice.state === "speaking";
+  return (
+    <Pressable
+      testID="listen-button"
+      onPress={() => {
+        if (speaking) {
+          voice.stopSpeaking();
+        } else {
+          setPressed(true);
+          voice.speak(text, lang).finally(() => setPressed(false));
+        }
+      }}
+      style={styles.listenBtn}
+    >
+      {pressed && !speaking ? (
+        <ActivityIndicator size="small" color={colors.brand} />
+      ) : (
+        <Ionicons
+          name={speaking ? "pause" : "volume-medium-outline"}
+          size={14}
+          color={speaking ? colors.brand : colors.muted}
+        />
+      )}
+    </Pressable>
+  );
+}
+
 export default memo(MessageBubble);
 
 const styles = StyleSheet.create({
@@ -91,6 +129,13 @@ const styles = StyleSheet.create({
   userText: { color: colors.onBrand, fontSize: type.base, lineHeight: 20 },
 
   aiWrap: { alignItems: "flex-start", marginBottom: spacing.lg, width: "100%" },
+  aiHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: spacing.xs,
+  },
   aiHeader: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -101,7 +146,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    marginBottom: spacing.xs,
+  },
+  listenBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceTertiary,
   },
   aiTag: {
     fontFamily: fonts.mono,

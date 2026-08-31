@@ -116,6 +116,11 @@ try {
           map.addSource('h'+i,{type:'geojson',data:fc});
           map.addLayer({id:'hc'+i,type:'circle',source:'h'+i,paint:{'circle-radius':22,'circle-blur':1,'circle-opacity':0.55,'circle-color':['interpolate',['linear'],['get','v'],mn,'#3FD07F',mid,'#E9B44C',mx,'#FF5B6E']}});
         }
+        if(l.type==='route_line' && l.segments){
+          var fc={type:'FeatureCollection',features:l.segments.map(function(s){return {type:'Feature',properties:{unsafe:!!s.unsafe},geometry:{type:'LineString',coordinates:[s.a,s.b]}};})};
+          map.addSource('rt'+i,{type:'geojson',data:fc});
+          map.addLayer({id:'rtcase'+i,type:'line',source:'rt'+i,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['case',['get','unsafe'],'#FF5B6E','#3FD07F'],'line-width':5,'line-opacity':0.9}});
+        }
       });
       var bounds=new maplibregl.LngLatBounds();
       (W.markers||[]).forEach(function(m){
@@ -123,6 +128,9 @@ try {
         var c='#3B9EFF';
         if(m.kind==='pfz'||m.kind==='route_safe')c='#3FD07F';
         if(m.kind==='route_unsafe')c='#FF5B6E';
+        if(m.kind==='route_start'){c='#FFFFFF';el.style.borderRadius='50%';el.style.width='20px';el.style.height='20px';}
+        if(m.kind==='route_end'){c='#3B9EFF';el.style.width='20px';el.style.height='20px';el.style.transform='rotate(45deg)';}
+        if(m.kind==='pfz_recommended'){c='#E9B44C';el.style.width='24px';el.style.height='24px';el.style.borderRadius='50%';el.style.border='3px solid #FFFFFF';el.style.boxShadow='0 0 0 3px rgba(233,180,76,0.4)';}
         el.style.background=c;
         if(m.kind==='user'){el.style.borderRadius='50%';el.style.background='#FFFFFF';}
         new maplibregl.Marker({element:el}).setLngLat([m.lon,m.lat]).setPopup(new maplibregl.Popup({offset:12,closeButton:false}).setText(m.label)).addTo(map);
@@ -149,23 +157,44 @@ try {
 // preview, not just from the Expo Go / native app.
 function markerColor(kind: string) {
   if (kind === "pfz" || kind === "route_safe") return colors.success;
+  if (kind === "pfz_recommended") return colors.warning;
   if (kind === "route_unsafe") return colors.error;
+  if (kind === "route_start") return colors.onSurface;
+  if (kind === "route_end") return colors.brand;
   if (kind === "user") return colors.onSurface;
   return colors.brand;
 }
 
+const hasRoute = (widget: MapWidgetT) =>
+  (widget.markers || []).some((m) => m.kind?.startsWith("route_"));
+const hasNamedRoute = (widget: MapWidgetT) =>
+  (widget.markers || []).some((m) => m.kind === "route_start" || m.kind === "route_end");
+const hasRecommendedPfz = (widget: MapWidgetT) =>
+  (widget.markers || []).some((m) => m.kind === "pfz_recommended");
+
 function WebMarkerList({ widget }: { widget: MapWidgetT }) {
   const markers = widget.markers || [];
+  const unsafeCount = markers.filter((m) => m.kind === "route_unsafe").length;
+  const isRoute = hasRoute(widget);
   return (
     <View style={styles.webListBox}>
+      {isRoute && (
+        <Text style={[styles.webListRouteBanner, unsafeCount > 0 && styles.webListRouteBannerUnsafe]}>
+          {unsafeCount > 0
+            ? `⚠ ROUTE PASSES THROUGH ${unsafeCount} UNSAFE STRETCH${unsafeCount > 1 ? "ES" : ""}`
+            : "✓ ROUTE CLEAR — NO HAZARDS DETECTED"}
+        </Text>
+      )}
       {markers.length === 0 ? (
         <Text style={styles.webListEmpty}>No map markers for this answer.</Text>
       ) : (
         markers.map((m, i) => (
           <View key={`${m.label}-${i}`} style={styles.webListRow}>
-            <View style={[styles.dot, { backgroundColor: markerColor(m.kind), borderRadius: m.kind === "user" ? 8 : 0 }]} />
+            <View style={[styles.dot, { backgroundColor: markerColor(m.kind), borderRadius: m.kind === "user" || m.kind === "route_start" || m.kind === "pfz_recommended" ? 8 : 0 }]} />
             <View style={styles.webListText}>
-              <Text style={styles.webListLabel}>{m.label}</Text>
+              <Text style={[styles.webListLabel, m.kind === "route_unsafe" && { color: colors.error }, m.kind === "pfz_recommended" && { color: colors.warning }]}>
+                {m.label}
+              </Text>
               <Text style={styles.webListCoords}>
                 {m.lat.toFixed(4)}, {m.lon.toFixed(4)}
               </Text>
@@ -224,11 +253,14 @@ export default function MapWidget({ widget }: { widget: MapWidgetT }) {
   }, []);
 
   const retry = useCallback(() => setRetryKey((k) => k + 1), []);
+  const isRoute = hasRoute(widget);
 
   return (
     <View testID="map-widget" style={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>MAP · MapLibre + CARTO</Text>
+        <Text style={styles.headerText}>
+          {isRoute ? "MAP · ROUTE PLAN" : "MAP · MapLibre + CARTO"}
+        </Text>
       </View>
       {isWeb ? (
         <WebMarkerList widget={widget} />
@@ -268,9 +300,27 @@ export default function MapWidget({ widget }: { widget: MapWidgetT }) {
         </View>
       )}
       <View style={styles.legend}>
-        <Legend color={colors.onSurface} label="You" round />
-        <Legend color={colors.success} label="PFZ / Safe" />
-        <Legend color={colors.error} label="Hazard / Restricted" />
+        {hasNamedRoute(widget) ? (
+          <>
+            <Legend color={colors.onSurface} label="Start" round />
+            <Legend color={colors.brand} label="Destination" />
+            <Legend color={colors.success} label="Safe stretch" />
+            <Legend color={colors.error} label="Unsafe stretch" />
+          </>
+        ) : hasRecommendedPfz(widget) ? (
+          <>
+            <Legend color={colors.onSurface} label="You" round />
+            <Legend color={colors.warning} label="Recommended PFZ" />
+            <Legend color={colors.success} label="Other PFZ / Safe path" />
+            <Legend color={colors.error} label="Unsafe stretch" />
+          </>
+        ) : (
+          <>
+            <Legend color={colors.onSurface} label="You" round />
+            <Legend color={colors.success} label="PFZ / Safe" />
+            <Legend color={colors.error} label="Hazard / Restricted" />
+          </>
+        )}
       </View>
       <Text style={styles.attribution}>© OpenStreetMap contributors · © CARTO</Text>
     </View>
@@ -352,6 +402,17 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     gap: spacing.xs,
     backgroundColor: colors.bg,
+  },
+  webListRouteBanner: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.success,
+    paddingBottom: spacing.xs,
+    letterSpacing: 0.5,
+  },
+  webListRouteBannerUnsafe: {
+    color: colors.error,
   },
   webListEmpty: {
     fontFamily: fonts.mono,

@@ -6,12 +6,21 @@ import { ChartWidgetT } from "@/src/api";
 import { colors, fonts, radius, spacing, type } from "@/src/theme";
 
 // Lightweight SST/chlorophyll trend line chart (react-native-svg).
-export default function ChartWidget({ widget }: { widget: ChartWidgetT }) {
+// `forceColor` lets callers (e.g. the Alerts tab's wind/wave/SST cards)
+// pick an explicit colour regardless of title text/language; existing
+// call-sites that don't pass it keep the original title-based behaviour.
+export default function ChartWidget({
+  widget,
+  forceColor,
+}: {
+  widget: ChartWidgetT;
+  forceColor?: string;
+}) {
   const { width } = useWindowDimensions();
   // Console palette: SST -> blue, Chlorophyll -> mint-green.
-  const lineColor = /chloro/i.test(widget.title)
+  const lineColor = forceColor || (/chloro/i.test(widget.title)
     ? colors.success
-    : colors.dataBlue;
+    : colors.dataBlue);
   const W = width - spacing.lg * 2 - 4; // minus outer padding + border
   const H = 160;
   const padL = 34;
